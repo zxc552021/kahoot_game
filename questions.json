@@ -1,0 +1,50 @@
+[
+  {
+    "question": "寶礦力水得是由什麼概念所研發的?",
+    "options": [
+      "生理食鹽水",
+      "蒸餾水",
+      "點滴",
+      "葡萄糖"
+    ],
+    "correct_index": 2,
+    "time_limit": 15,
+    "image_url": "/static/uploads/80918271-5de6-4090-9285-c85a6fc0f072.png"
+  },
+  {
+    "question": "我們的體液是由__與__所構成的?",
+    "options": [
+      "水分，油脂",
+      "水分，電解質",
+      "血液，電解質",
+      "汗水，淚水"
+    ],
+    "correct_index": 1,
+    "time_limit": 15,
+    "image_url": "/static/uploads/a4ff86c6-19fb-4a31-97b1-3107ab4a0e66.png"
+  },
+  {
+    "question": "發生熱傷害的處理方式",
+    "options": [
+      "大口喝水",
+      "大口喝酒",
+      "喝運動飲料",
+      "電話打113"
+    ],
+    "correct_index": 2,
+    "time_limit": 20,
+    "image_url": "/static/uploads/f81c82ef-a2ec-4e06-ba34-87bfbcba7b93.png"
+  },
+  {
+    "question": "缺水時只喝水身體會啟動什麼機制?",
+    "options": [
+      "自發性脫水",
+      "自發性膀胱炎",
+      "細胞自噬",
+      "生理防禦反射"
+    ],
+    "correct_index": 0,
+    "time_limit": 15,
+    "image_url": "/static/uploads/2dff0f50-59cc-4311-8455-7e40a7c1d8a4.png"
+  }
+]

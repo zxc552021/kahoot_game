@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.DS_Store
+game_state.json
+.gemini/
+.agents/
+.vscode/
+.idea/
+venv/
+env/

@@ -1,0 +1,1476 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>互動遊戲 - 投影大畫面</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&family=Noto+Sans+TC:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0d291b; /* Rich Classroom Chalkboard Green */
+            --card-bg: rgba(20, 48, 36, 0.6); /* Translucent dark green */
+            --primary: #d97706; /* Chalk yellow / wood amber color */
+            --primary-glow: rgba(217, 119, 6, 0.4);
+            --text-main: #f3f4f6;
+            --text-muted: #a7f3d0; /* Muted chalk green-white */
+            --border-color: rgba(255, 255, 255, 0.15); /* Chalk line white */
+
+            /* Kahoot Choice Colors */
+            --red-choice: #e21b3c;
+            --blue-choice: #1368ce;
+            --yellow-choice: #d89e00;
+            --green-choice: #26890c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.04) 0%, transparent 80%),
+                radial-gradient(circle at 15% 25%, rgba(255, 255, 255, 0.02) 0%, transparent 40%),
+                linear-gradient(135deg, #0e3322 0%, #061910 100%);
+        }
+
+        /* Top Bar */
+        header {
+            padding: 8px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid #5c3a21; /* Wood divider border */
+            background: #0b2317;
+            z-index: 10;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35);
+        }
+
+        .logo {
+            font-size: 26px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #fef08a, #facc15); /* Chalk yellow logo */
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 1px;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .status-badge {
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ef4444; /* Default offline */
+            box-shadow: 0 0 8px #ef4444;
+        }
+
+        .status-dot.online {
+            background: #10b981;
+            box-shadow: 0 0 8px #10b981;
+        }
+
+        .btn {
+            padding: 12px 28px;
+            border-radius: 14px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: none;
+            font-family: inherit;
+            font-size: 16px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #6366f1);
+            color: white;
+            box-shadow: 0 4px 14px var(--primary-glow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.6);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .sound-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 20px;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.3s;
+        }
+        .sound-btn:hover {
+            color: var(--text-main);
+        }
+
+        /* Screen Wrapper */
+        .screen-container {
+            flex-grow: 1;
+            display: flex;
+            position: relative;
+            padding: 15px;
+            border: 10px solid #5c3a21; /* Wooden chalkboard border */
+            border-radius: 12px;
+            box-shadow: 
+                inset 0 0 30px rgba(0,0,0,0.85),
+                0 12px 28px rgba(0,0,0,0.5);
+            margin: 5px 15px 15px 15px;
+            background: rgba(12, 35, 25, 0.95);
+        }
+
+        .screen {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            bottom: 15px;
+            display: none;
+            flex-direction: column;
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 1. Lobby Screen */
+        .lobby-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            height: 100%;
+        }
+
+        .lobby-left {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(12px);
+            text-align: center;
+        }
+
+        .qrcode-container {
+            background: white;
+            padding: 12px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .qrcode-container img {
+            display: block;
+            width: 170px !important;
+            height: 170px !important;
+        }
+
+        .join-url {
+            font-size: 18px;
+            font-weight: 800;
+            color: #facc15; /* yellow chalk accent color */
+            margin-top: 8px;
+            word-break: break-all;
+        }
+
+        .lobby-right {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(8px);
+        }
+
+        .lobby-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .player-count-title {
+            font-size: 24px;
+            font-weight: 800;
+        }
+
+        .player-list-scroll {
+            flex-grow: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            gap: 15px;
+            padding-right: 10px;
+        }
+
+        .player-tag {
+            background: rgba(255, 255, 255, 0.04);
+            border: 2px dashed rgba(255, 255, 255, 0.25);
+            padding: 12px 24px;
+            border-radius: 16px;
+            font-size: 18px;
+            font-weight: 700;
+            color: #fef08a; /* Soft chalk-yellow color for text */
+            animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* 2. Question Screen */
+        .question-header {
+            text-align: center;
+            margin-bottom: 12px;
+        }
+
+        .q-progress {
+            font-size: 15px;
+            font-weight: 800;
+            color: #facc15;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .question-title {
+            font-size: 25px;
+            font-weight: 900;
+            line-height: 1.3;
+        }
+
+        .question-middle {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 5px;
+            flex-grow: 1;
+        }
+
+        .timer-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .timer-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 6px solid rgba(255, 255, 255, 0.05);
+            border-top-color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            font-weight: 900;
+            box-shadow: 0 0 15px var(--primary-glow);
+            position: relative;
+        }
+
+        .answers-counter {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 12px 20px;
+            text-align: center;
+            backdrop-filter: blur(12px);
+        }
+
+        .answers-num {
+            font-size: 44px;
+            font-weight: 900;
+            color: #34d399;
+            text-shadow: 0 0 15px rgba(52, 211, 153, 0.4);
+        }
+
+        .answers-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-top: 3px;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            height: 110px;
+        }
+
+        .opt-card {
+            border-radius: 12px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            font-size: 17px;
+            font-weight: 800;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            position: relative;
+            overflow: hidden;
+            border: 2px solid transparent;
+        }
+
+        .opt-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 10px;
+            height: 100%;
+        }
+
+        .opt-red { background: rgba(226, 27, 60, 0.15); border-color: rgba(226, 27, 60, 0.3); }
+        .opt-red::before { background: var(--red-choice); }
+        
+        .opt-blue { background: rgba(19, 104, 206, 0.15); border-color: rgba(19, 104, 206, 0.3); }
+        .opt-blue::before { background: var(--blue-choice); }
+        
+        .opt-yellow { background: rgba(216, 158, 0, 0.15); border-color: rgba(216, 158, 0, 0.3); }
+        .opt-yellow::before { background: var(--yellow-choice); }
+        
+        .opt-green { background: rgba(38, 137, 12, 0.15); border-color: rgba(38, 137, 12, 0.3); }
+        .opt-green::before { background: var(--green-choice); }
+
+        .opt-icon {
+            margin-right: 20px;
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .opt-icon svg {
+            fill: white;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 3. Reveal Screen Graph */
+        .reveal-layout {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .reveal-leaderboard {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin: 10px 0;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 10px;
+            overflow-y: auto;
+            flex-grow: 1;
+            min-height: 110px;
+        }
+
+        .reveal-leaderboard-row {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 6px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(8px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: slideInUp 0.4s ease forwards;
+            opacity: 0;
+        }
+
+        .reveal-leaderboard-row:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateX(4px);
+        }
+
+        .reveal-leaderboard-row.gold {
+            background: linear-gradient(90deg, rgba(250, 204, 21, 0.15) 0%, rgba(250, 204, 21, 0.05) 100%);
+            border-color: rgba(250, 204, 21, 0.4);
+            box-shadow: 0 0 15px rgba(250, 204, 21, 0.15);
+        }
+        .reveal-leaderboard-row.gold .reveal-rank {
+            color: #facc15;
+            text-shadow: 0 0 8px rgba(250, 204, 21, 0.6);
+        }
+
+        .reveal-leaderboard-row.silver {
+            background: linear-gradient(90deg, rgba(226, 232, 240, 0.15) 0%, rgba(226, 232, 240, 0.05) 100%);
+            border-color: rgba(226, 232, 240, 0.3);
+        }
+        .reveal-leaderboard-row.silver .reveal-rank {
+            color: #cbd5e1;
+        }
+
+        .reveal-leaderboard-row.bronze {
+            background: linear-gradient(90deg, rgba(249, 115, 22, 0.15) 0%, rgba(249, 115, 22, 0.05) 100%);
+            border-color: rgba(249, 115, 22, 0.3);
+        }
+        .reveal-leaderboard-row.bronze .reveal-rank {
+            color: #fdba74;
+        }
+
+        .reveal-rank {
+            font-weight: 900;
+            font-size: 16px;
+            color: #818cf8;
+            width: 25px;
+        }
+
+        .reveal-name {
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .reveal-score {
+            font-weight: 800;
+            font-size: 16px;
+            color: #10b981;
+        }
+
+        .reveal-streak {
+            font-size: 12px;
+            font-weight: 800;
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+            padding: 2px 8px;
+            border-radius: 20px;
+            margin-left: 10px;
+        }
+
+        .opt-card.dimmed {
+            opacity: 0.3;
+            transform: scale(0.96);
+            transition: all 0.5s;
+        }
+        
+        .opt-card.correct-answer-card {
+            border-color: #10b981;
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.4);
+            transform: scale(1.02);
+            z-index: 2;
+        }
+
+        /* 4. Leaderboard */
+        .leaderboard-list {
+            max-width: 700px;
+            width: 100%;
+            margin: 30px auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .leaderboard-row {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            padding: 16px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(12px);
+            transition: all 0.3s;
+            animation: slideInUp 0.5s ease forwards;
+            opacity: 0;
+        }
+
+        @keyframes slideInUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .leaderboard-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .rank-num {
+            font-size: 22px;
+            font-weight: 900;
+            color: #818cf8;
+            width: 35px;
+        }
+
+        .player-name {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .leaderboard-right {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+        }
+
+        .player-score {
+            font-size: 22px;
+            font-weight: 800;
+            color: #10b981;
+        }
+
+        .streak-badge {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 800;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* 5. Podium Screen */
+        .podium-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            height: 380px;
+            margin: 50px auto;
+            gap: 20px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .podium-spot {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            height: 100%;
+        }
+
+        .podium-name {
+            font-size: 22px;
+            font-weight: 900;
+            margin-bottom: 12px;
+            text-align: center;
+            word-break: break-all;
+            height: 30px;
+            width: 100%;
+        }
+
+        .podium-pedestal {
+            width: 100%;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .podium-score {
+            font-size: 16px;
+            font-weight: 700;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .spot-1st { height: 60%; }
+        .spot-2nd { height: 45%; }
+        .spot-3rd { height: 32%; }
+
+        .spot-1st .podium-pedestal {
+            background: linear-gradient(to top, rgba(216, 158, 0, 0.8), rgba(254, 240, 138, 0.9));
+            border: 2px solid #fef08a;
+            color: #451a03;
+            box-shadow: 0 0 35px rgba(234, 179, 8, 0.4);
+        }
+        .spot-2nd .podium-pedestal {
+            background: linear-gradient(to top, rgba(100, 116, 139, 0.8), rgba(203, 213, 225, 0.9));
+            border: 2px solid #cbd5e1;
+            color: #0f172a;
+        }
+        .spot-3rd .podium-pedestal {
+            background: linear-gradient(to top, rgba(120, 53, 4, 0.8), rgba(251, 146, 60, 0.9));
+            border: 2px solid #fb923c;
+            color: #ffffff;
+        }
+
+        .podium-rank-text {
+            font-size: 64px;
+            font-weight: 900;
+        }
+
+        /* SVG Shape Styles */
+        .opt-icon svg {
+            filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));
+        }
+
+        /* Footer Info */
+        .screen-footer {
+            margin-top: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid var(--border-color);
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">Interactive Quiz Game</div>
+        <div class="header-controls">
+            <button class="sound-btn" onclick="toggleMute()" id="muteBtn" title="靜音">🔊</button>
+            <a href="/creator" target="_blank" class="btn btn-secondary" style="padding: 8px 20px; font-size: 15px; border-radius: 10px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; font-weight: 800;">題目設定</a>
+            <button class="btn btn-primary" id="headerControlBtn" style="display: none; padding: 8px 20px; font-size: 15px; border-radius: 10px;"></button>
+            <div class="status-badge">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">伺服器中斷連線</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="screen-container">
+        <!-- 1. Lobby Screen -->
+        <div class="screen active" id="lobby-screen">
+            <div class="lobby-grid">
+                <div class="lobby-left">
+                    <h2 style="font-size: 24px; font-weight: 900; margin-bottom: 20px;">手機掃描加入遊戲！</h2>
+                    <div class="qrcode-container">
+                        <img id="qrcodeImg" src="" style="width: 200px; height: 200px; display: block;" alt="掃描 QR Code">
+                    </div>
+                    <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 13px; margin-bottom: 15px; border-radius: 8px; width: 100%; justify-content: center; font-weight: bold; border: 1px dashed rgba(255,255,255,0.3);" onclick="downloadQrCode()">
+                        💾 下載 QR Code 圖片
+                    </button>
+                    <p style="color: var(--text-muted); font-size: 14px;">或直接在手機網址輸入：</p>
+                    <p class="join-url" id="joinUrlText">載入中...</p>
+                    <p style="color: var(--text-muted); font-size: 13px; margin-top: 15px; line-height: 1.4;">
+                        若手機連不上，可能是 IP 偵測錯誤。<br>
+                        <a href="#" onclick="changeIpAddress()" style="color: #818cf8; text-decoration: underline; font-weight: 700;">[點此手動修改連線 IP]</a>
+                    </p>
+                </div>
+                <div class="lobby-right">
+                    <div class="lobby-header">
+                        <span class="player-count-title">已加入的玩家 (<span id="lobbyCount" style="color: #818cf8;">0</span>)</span>
+                    </div>
+                    <div class="player-list-scroll" id="lobbyPlayers">
+                        <!-- Player tags will bounce in here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Question Screen -->
+        <div class="screen" id="question-screen">
+            <div class="question-header">
+                <p class="q-progress" id="questionProgress">第 0 題，共 0 題</p>
+                <h1 class="question-title" id="questionTitle">讀取題目中...</h1>
+            </div>
+            
+            <div class="question-middle">
+                <div class="timer-panel">
+                    <div class="timer-circle" id="timerCircle">20</div>
+                    <span style="font-size: 14px; color: var(--text-muted); margin-top: 10px; font-weight: 600;">剩餘時間</span>
+                </div>
+                
+                <div style="display: flex; justify-content: center; width: 100%; height: 220px; align-items: center; overflow: hidden;">
+                    <!-- Dynamic Image or placeholder -->
+                    <img id="questionImage" src="" style="max-height: 220px; max-width: 100%; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); display: none; object-fit: contain; border: 1px solid var(--border-color);" alt="題目圖片">
+                    <div id="questionPlaceholder" style="background: rgba(255,255,255,0.02); width: 240px; height: 160px; border-radius: 16px; border: 1px dashed var(--border-color); display: flex; align-items: center; justify-content: center; font-size: 64px; font-weight: 800; color: rgba(255,255,255,0.05);">?</div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end;">
+                    <div class="answers-counter">
+                        <div class="answers-num" id="answerCount">0</div>
+                        <div class="answers-label">已作答人數</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="options-grid">
+                <div class="opt-card opt-red">
+                    <span class="opt-icon">
+                        <svg viewBox="0 0 100 100"><polygon points="50,15 90,85 10,85" /></svg>
+                    </span>
+                    <span id="optText0">選項 A</span>
+                </div>
+                <div class="opt-card opt-blue">
+                    <span class="opt-icon">
+                        <svg viewBox="0 0 100 100"><polygon points="50,5 95,50 50,95 5,50" /></svg>
+                    </span>
+                    <span id="optText1">選項 B</span>
+                </div>
+                <div class="opt-card opt-yellow">
+                    <span class="opt-icon">
+                        <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" /></svg>
+                    </span>
+                    <span id="optText2">選項 C</span>
+                </div>
+                <div class="opt-card opt-green">
+                    <span class="opt-icon">
+                        <svg viewBox="0 0 100 100"><rect x="15" y="15" width="70" height="70" /></svg>
+                    </span>
+                    <span id="optText3">選項 D</span>
+                </div>
+            </div>
+
+            <div class="screen-footer">
+                <span style="color: var(--text-muted);">投影大螢幕 - 請學員看此畫面題目與選項</span>
+                <button class="btn btn-secondary" onclick="revealAnswersImmediately()">直接公布答案</button>
+            </div>
+        </div>
+
+        <!-- 3. Reveal Answers Screen -->
+        <div class="screen" id="reveal-screen">
+            <div class="question-header">
+                <p class="q-progress" id="revealProgress">第 0 題，共 0 題</p>
+                <h1 class="question-title" id="revealTitle">題目答案揭曉</h1>
+            </div>
+
+            <div class="reveal-layout">
+                <div class="reveal-leaderboard" id="revealLeaderboard">
+                    <!-- Top 5 leaderboard rows will go here -->
+                </div>
+
+                <div class="options-grid">
+                    <div class="opt-card opt-red" id="revealOptCard0">
+                        <span class="opt-icon">
+                            <svg viewBox="0 0 100 100"><polygon points="50,15 90,85 10,85" /></svg>
+                        </span>
+                        <span id="revealOptText0">選項 A</span>
+                    </div>
+                    <div class="opt-card opt-blue" id="revealOptCard1">
+                        <span class="opt-icon">
+                            <svg viewBox="0 0 100 100"><polygon points="50,5 95,50 50,95 5,50" /></svg>
+                        </span>
+                        <span id="revealOptText1">選項 B</span>
+                    </div>
+                    <div class="opt-card opt-yellow" id="revealOptCard2">
+                        <span class="opt-icon">
+                            <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" /></svg>
+                        </span>
+                        <span id="revealOptText2">選項 C</span>
+                    </div>
+                    <div class="opt-card opt-green" id="revealOptCard3">
+                        <span class="opt-icon">
+                            <svg viewBox="0 0 100 100"><rect x="15" y="15" width="70" height="70" /></svg>
+                        </span>
+                        <span id="revealOptText3">選項 D</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="screen-footer">
+                <span style="color: var(--text-muted);" id="revealSummaryText">作答時間結束</span>
+                <button class="btn btn-primary" id="revealNextBtn" onclick="nextQuestion()">下一題</button>
+            </div>
+        </div>
+
+        <!-- 4. Leaderboard Screen -->
+        <div class="screen" id="leaderboard-screen">
+            <div class="question-header">
+                <p class="q-progress">STANDINGS</p>
+                <h1 class="question-title">即時排行榜</h1>
+            </div>
+
+            <div class="leaderboard-list" id="leaderboardList">
+                <!-- Top 5 rows animated in -->
+            </div>
+
+            <div class="screen-footer">
+                <span></span>
+                <button class="btn btn-primary" id="leaderboardNextBtn" onclick="nextQuestion()">下一題</button>
+            </div>
+        </div>
+
+        <!-- 5. Finished / Podium Screen -->
+        <div class="screen" id="podium-screen">
+            <div class="question-header">
+                <p class="q-progress">VICTORY PODIUM</p>
+                <h1 class="question-title">遊戲結束！頒獎典禮</h1>
+            </div>
+
+            <div class="podium-container">
+                <!-- 2nd Place -->
+                <div class="podium-spot spot-2nd">
+                    <div class="podium-name" id="podiumName2">亞軍</div>
+                    <div class="podium-pedestal">
+                        <span class="podium-rank-text">2</span>
+                        <span class="podium-score" id="podiumScore2">-</span>
+                    </div>
+                </div>
+                <!-- 1st Place -->
+                <div class="podium-spot spot-1st">
+                    <div class="podium-name" id="podiumName1">冠軍</div>
+                    <div class="podium-pedestal">
+                        <span class="podium-rank-text">1</span>
+                        <span class="podium-score" id="podiumScore1">-</span>
+                    </div>
+                </div>
+                <!-- 3rd Place -->
+                <div class="podium-spot spot-3rd">
+                    <div class="podium-name" id="podiumName3">季軍</div>
+                    <div class="podium-pedestal">
+                        <span class="podium-rank-text">3</span>
+                        <span class="podium-score" id="podiumScore3">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="screen-footer">
+                <span></span>
+                <button class="btn btn-secondary" onclick="resetToLobby()">回大廳重新開始</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Web Audio Synthesizer for premium sound effects
+        class AudioSynth {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+                this.bgmNode = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playChime(freq, type = 'sine', duration = 0.5) {
+                if (this.muted) return;
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                
+                gain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            }
+
+            playTick() {
+                this.playChime(800, 'triangle', 0.08);
+            }
+
+            playCorrect() {
+                const now = this.ctx ? this.ctx.currentTime : 0;
+                this.playChime(523.25, 'sine', 0.2); // C5
+                setTimeout(() => this.playChime(659.25, 'sine', 0.2), 100); // E5
+                setTimeout(() => this.playChime(783.99, 'sine', 0.4), 200); // G5
+            }
+
+            playWrong() {
+                if (this.muted) return;
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(130, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(100, this.ctx.currentTime + 0.4);
+                
+                gain.gain.setValueAtTime(0.30, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.001, this.ctx.currentTime + 0.4);
+                
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.4);
+            }
+
+            playLeaderboardSound() {
+                this.playChime(440, 'triangle', 0.15);
+                setTimeout(() => this.playChime(554, 'triangle', 0.15), 120);
+                setTimeout(() => this.playChime(659, 'triangle', 0.3), 240);
+            }
+
+            startBgm(type = 'lobby') {
+                if (this.muted) return;
+                this.init();
+                this.stopBgm();
+
+                const audioCtx = this.ctx;
+                const bufferSize = audioCtx.sampleRate * 2;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                
+                let beatCount = 0;
+                const notes = type === 'lobby' 
+                    ? [261.63, 329.63, 392.00, 329.63, 293.66, 349.23, 440.00, 349.23] 
+                    : [110.00, 110.00, 164.81, 110.00, 130.81, 130.81, 196.00, 130.81]; 
+                
+                const noteLength = type === 'lobby' ? 0.35 : 0.25;
+                const bpmInterval = type === 'lobby' ? 400 : 250; 
+
+                this.bgmTimer = setInterval(() => {
+                    if (this.muted) return;
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(notes[beatCount % notes.length], audioCtx.currentTime);
+                    
+                    gain.gain.setValueAtTime(type === 'lobby' ? 0.07 : 0.09, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + noteLength);
+                    
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + noteLength);
+                    
+                    beatCount++;
+                }, bpmInterval);
+            }
+
+            stopBgm() {
+                if (this.bgmTimer) {
+                    clearInterval(this.bgmTimer);
+                    this.bgmTimer = null;
+                }
+            }
+
+            playFanfare() {
+                if (this.muted) return;
+                this.init();
+                const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, idx) => {
+                    setTimeout(() => {
+                        this.playChime(freq, 'sawtooth', 0.6);
+                    }, idx * 100);
+                });
+            }
+        }
+
+        const synth = new AudioSynth();
+
+        function toggleMute() {
+            synth.muted = !synth.muted;
+            const btn = document.getElementById('muteBtn');
+            btn.innerText = synth.muted ? '🔇' : '🔊';
+            if (synth.muted) {
+                synth.stopBgm();
+            } else {
+                const activeScreen = document.querySelector('.screen.active').id;
+                if (activeScreen === 'lobby-screen') {
+                    synth.startBgm('lobby');
+                } else if (activeScreen === 'question-screen') {
+                    synth.startBgm('game');
+                }
+            }
+        }
+
+        // Network & WS Variables
+        let ws;
+        let localIp = 'localhost';
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+        
+        // Setup QR Code image from server API
+        function setupJoinDetails(ip) {
+            localIp = ip;
+            
+            // Get current port (e.g., 8000)
+            const port = window.location.port ? `:${window.location.port}` : '';
+            
+            // If the host is opened via a real IP (not localhost/127.0.0.1),
+            // prioritize using browser's current host IP. Otherwise use server-detected IP.
+            let hostIp = window.location.hostname;
+            if (hostIp === 'localhost' || hostIp === '127.0.0.1') {
+                hostIp = ip;
+            }
+            
+            const playerUrl = `${window.location.protocol}//${hostIp}${port}/player`;
+            document.getElementById('joinUrlText').innerText = playerUrl;
+            
+            // Generate QR code dynamically via backend API
+            const qrApiUrl = `/api/qrcode?text=${encodeURIComponent(playerUrl)}`;
+            document.getElementById('qrcodeImg').src = qrApiUrl;
+        }
+
+        function changeIpAddress() {
+            const newIp = prompt("請輸入您的電腦在 Wi-Fi 中的實際 IP 位址（例如 192.168.1.102）：\n(可在電腦命令提示字元輸入 ipconfig 查詢)", localIp);
+            if (newIp && newIp.trim()) {
+                setupJoinDetails(newIp.trim());
+            }
+        }
+
+        // Initialize Websocket connection
+        function connect() {
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                document.getElementById('statusDot').className = 'status-dot online';
+                document.getElementById('statusText').innerText = '伺服器已連線';
+                
+                // Register as Host
+                ws.send(JSON.stringify({ role: 'host' }));
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                console.log("Host WS Message received:", data);
+                
+                switch(data.type) {
+                    case 'init':
+                        setupJoinDetails(data.local_ip);
+                        if (data.game_state === 'LOBBY') {
+                            synth.startBgm('lobby');
+                            showScreen('lobby-screen');
+                        }
+                        break;
+                        
+                    case 'lobby_update':
+                        updateLobbyList(data.players);
+                        break;
+                        
+                    case 'question_start':
+                        showQuestion(data);
+                        break;
+                        
+                    case 'timer_tick':
+                        updateTimer(data.seconds_left);
+                        break;
+                        
+                    case 'answer_received':
+                        document.getElementById('answerCount').innerText = data.answered_count;
+                        break;
+                        
+                    case 'reveal_answers':
+                        showRevealScreen(data);
+                        break;
+                        
+                    case 'leaderboard':
+                        updateLeaderboard(data.leaderboard);
+                        break;
+                        
+                    case 'podium':
+                        showPodium(data.podium);
+                        break;
+                        
+                    case 'error':
+                        alert(data.message);
+                        break;
+                }
+            };
+
+            ws.onclose = () => {
+                document.getElementById('statusDot').className = 'status-dot';
+                document.getElementById('statusText').innerText = '伺服器中斷連線';
+                synth.stopBgm();
+                setTimeout(connect, 3000);
+            };
+        }
+
+        // Active screens managers
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            updateHeaderControlBtn(screenId);
+        }
+
+        function updateHeaderControlBtn(screenId) {
+            const btn = document.getElementById('headerControlBtn');
+            if (!btn) return;
+
+            if (screenId === 'lobby-screen') {
+                btn.style.display = 'block';
+                btn.innerText = '開始遊戲';
+                btn.disabled = playersMap.length === 0;
+                btn.onclick = startGame;
+            } else if (screenId === 'question-screen') {
+                btn.style.display = 'block';
+                btn.innerText = '公布答案';
+                btn.disabled = false;
+                btn.onclick = revealAnswersImmediately;
+            } else if (screenId === 'reveal-screen') {
+                btn.style.display = 'block';
+                btn.disabled = false;
+                if (currentQuestion && currentQuestion.question_index + 1 >= currentQuestion.total_questions) {
+                    btn.innerText = '結束遊戲';
+                    btn.onclick = () => ws.send(JSON.stringify({ type: 'end_game' }));
+                } else {
+                    btn.innerText = '下一題';
+                    btn.onclick = nextQuestion;
+                }
+            } else if (screenId === 'leaderboard-screen') {
+                btn.style.display = 'block';
+                btn.disabled = false;
+                if (currentQuestion && currentQuestion.question_index + 1 >= currentQuestion.total_questions) {
+                    btn.innerText = '結束遊戲';
+                    btn.onclick = () => ws.send(JSON.stringify({ type: 'end_game' }));
+                } else {
+                    btn.innerText = '下一題';
+                    btn.onclick = nextQuestion;
+                }
+            } else if (screenId === 'podium-screen') {
+                btn.style.display = 'block';
+                btn.innerText = '回大廳';
+                btn.disabled = false;
+                btn.onclick = resetToLobby;
+            } else {
+                btn.style.display = 'none';
+            }
+        }
+
+        // Lobby Actions
+        let playersMap = [];
+        function updateLobbyList(players) {
+            playersMap = players;
+            document.getElementById('lobbyCount').innerText = players.length;
+            const startBtn = document.getElementById('startBtn');
+            if (startBtn) {
+                startBtn.disabled = players.length === 0;
+            }
+
+            const headerBtn = document.getElementById('headerControlBtn');
+            if (headerBtn && document.getElementById('lobby-screen').classList.contains('active')) {
+                headerBtn.disabled = players.length === 0;
+            }
+
+            const listContainer = document.getElementById('lobbyPlayers');
+            listContainer.innerHTML = '';
+            
+            players.forEach(p => {
+                if (p.connected) {
+                    const tag = document.createElement('div');
+                    tag.className = 'player-tag';
+                    tag.innerText = p.nickname;
+                    listContainer.appendChild(tag);
+                }
+            });
+        }
+
+        function startGame() {
+            synth.init();
+            ws.send(JSON.stringify({ type: 'start_game' }));
+        }
+
+        // Game Play Actions
+        let currentQuestion = null;
+        function showQuestion(data) {
+            currentQuestion = data;
+            synth.stopBgm();
+            synth.startBgm('game');
+
+            // Reset UI
+            document.getElementById('questionProgress').innerText = `第 ${data.question_index + 1} 題，共 ${data.total_questions} 題`;
+            document.getElementById('questionTitle').innerText = data.question || "請看以下圖片回答：";
+            document.getElementById('timerCircle').innerText = data.time_limit;
+            document.getElementById('answerCount').innerText = '0';
+            
+            // Dynamic image rendering
+            const imgEl = document.getElementById('questionImage');
+            const placeholderEl = document.getElementById('questionPlaceholder');
+            if (data.image_url) {
+                imgEl.src = data.image_url;
+                imgEl.style.display = 'block';
+                placeholderEl.style.display = 'none';
+            } else {
+                imgEl.src = '';
+                imgEl.style.display = 'none';
+                placeholderEl.style.display = 'flex';
+            }
+
+            document.getElementById('optText0').innerText = data.options[0];
+            document.getElementById('optText1').innerText = data.options[1];
+            document.getElementById('optText2').innerText = data.options[2];
+            document.getElementById('optText3').innerText = data.options[3];
+            
+            showScreen('question-screen');
+        }
+
+        function updateTimer(secondsLeft) {
+            const timer = document.getElementById('timerCircle');
+            timer.innerText = secondsLeft;
+            
+            if (secondsLeft <= 5 && secondsLeft > 0) {
+                synth.playTick();
+                timer.style.borderColor = '#ef4444';
+                timer.style.boxShadow = '0 0 25px rgba(239, 68, 68, 0.6)';
+            } else {
+                timer.style.borderColor = 'var(--primary)';
+                timer.style.boxShadow = '0 0 25px var(--primary-glow)';
+            }
+        }
+
+        function revealAnswersImmediately() {
+            ws.send(JSON.stringify({ type: 'reveal_answers' }));
+        }
+
+        // Reveal Answers Action
+        function showRevealScreen(data) {
+            synth.stopBgm();
+            synth.playChime(600, 'triangle', 0.4);
+
+            document.getElementById('revealProgress').innerText = document.getElementById('questionProgress').innerText;
+            document.getElementById('revealTitle').innerText = currentQuestion.question || "公佈答案";
+            
+            // Populate reveal leaderboard
+            const revealLeaderboard = document.getElementById('revealLeaderboard');
+            if (revealLeaderboard) {
+                revealLeaderboard.innerHTML = '';
+                const leaderboard = data.leaderboard || [];
+                leaderboard.forEach((player, index) => {
+                    const row = document.createElement('div');
+                    let medalClass = '';
+                    if (player.rank === 1) medalClass = 'gold';
+                    else if (player.rank === 2) medalClass = 'silver';
+                    else if (player.rank === 3) medalClass = 'bronze';
+                    
+                    row.className = `reveal-leaderboard-row ${medalClass}`;
+                    row.style.animationDelay = `${index * 100}ms`;
+                    
+                    const streakHtml = player.streak > 1 
+                        ? `<span class="reveal-streak">🔥 ${player.streak}</span>` 
+                        : '';
+                    
+                    row.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <span class="reveal-rank">${player.rank}</span>
+                            <span class="reveal-name">${escapeHtml(player.nickname)} ${!player.connected ? '<span style="font-size:12px;color:var(--text-muted);">(離線)</span>':''}</span>
+                            ${streakHtml}
+                        </div>
+                        <span class="reveal-score">${player.score}</span>
+                    `;
+                    revealLeaderboard.appendChild(row);
+                });
+            }
+
+            for (let i = 0; i < 4; i++) {
+                document.getElementById(`revealOptText${i}`).innerText = currentQuestion.options[i];
+                
+                const card = document.getElementById(`revealOptCard${i}`);
+                card.className = `opt-card ${getOptColorClass(i)}`;
+                
+                if (i === data.correct_index) {
+                    card.classList.add('correct-answer-card');
+                } else {
+                    card.classList.add('dimmed');
+                }
+            }
+
+            // Update bottom next button
+            const revealNextBtn = document.getElementById('revealNextBtn');
+            if (revealNextBtn) {
+                if (currentQuestion.question_index + 1 >= currentQuestion.total_questions) {
+                    revealNextBtn.innerText = '結束遊戲，查看頒獎';
+                    revealNextBtn.onclick = () => ws.send(JSON.stringify({ type: 'end_game' }));
+                } else {
+                    revealNextBtn.innerText = '下一題';
+                    revealNextBtn.onclick = () => nextQuestion();
+                }
+            }
+            
+            showScreen('reveal-screen');
+        }
+
+        function getOptColorClass(idx) {
+            if (idx === 0) return 'opt-red';
+            if (idx === 1) return 'opt-blue';
+            if (idx === 2) return 'opt-yellow';
+            return 'opt-green';
+        }
+
+        // Leaderboard Action
+        function showLeaderboard() {
+            ws.send(JSON.stringify({ type: 'show_leaderboard' }));
+        }
+
+        function updateLeaderboard(leaderboard) {
+            synth.playLeaderboardSound();
+            const container = document.getElementById('leaderboardList');
+            container.innerHTML = '';
+
+            leaderboard.forEach((player, index) => {
+                const row = document.createElement('div');
+                row.className = 'leaderboard-row';
+                row.style.animationDelay = `${index * 150}ms`;
+                
+                const streakHtml = player.streak > 1 
+                    ? `<span class="streak-badge">🔥 ${player.streak} 連勝</span>` 
+                    : '';
+                
+                row.innerHTML = `
+                    <div class="leaderboard-left">
+                        <span class="rank-num">${player.rank}</span>
+                        <span class="player-name">${escapeHtml(player.nickname)} ${!player.connected ? '<span style="font-size:12px;color:var(--text-muted);">(離線)</span>':''}</span>
+                    </div>
+                    <div class="leaderboard-right">
+                        ${streakHtml}
+                        <span class="player-score">${player.score}</span>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+
+            const nextBtn = document.getElementById('leaderboardNextBtn');
+            if (currentQuestion.question_index + 1 >= currentQuestion.total_questions) {
+                nextBtn.innerText = '結束遊戲，查看頒獎';
+                nextBtn.onclick = () => ws.send(JSON.stringify({ type: 'end_game' }));
+            } else {
+                nextBtn.innerText = '下一題';
+                nextBtn.onclick = () => nextQuestion();
+            }
+
+            showScreen('leaderboard-screen');
+        }
+
+        function nextQuestion() {
+            ws.send(JSON.stringify({ type: 'next_question' }));
+        }
+
+        // Podium (Finished Game) Action
+        function showPodium(podium) {
+            synth.playFanfare();
+            
+            document.getElementById('podiumName1').innerText = '-';
+            document.getElementById('podiumScore1').innerText = '';
+            document.getElementById('podiumName2').innerText = '-';
+            document.getElementById('podiumScore2').innerText = '';
+            document.getElementById('podiumName3').innerText = '-';
+            document.getElementById('podiumScore3').innerText = '';
+
+            podium.forEach(p => {
+                if (p.rank === 1) {
+                    document.getElementById('podiumName1').innerText = escapeHtml(p.nickname);
+                    document.getElementById('podiumScore1').innerText = `${p.score} 分`;
+                } else if (p.rank === 2) {
+                    document.getElementById('podiumName2').innerText = escapeHtml(p.nickname);
+                    document.getElementById('podiumScore2').innerText = `${p.score} 分`;
+                } else if (p.rank === 3) {
+                    document.getElementById('podiumName3').innerText = escapeHtml(p.nickname);
+                    document.getElementById('podiumScore3').innerText = `${p.score} 分`;
+                }
+            });
+
+            showScreen('podium-screen');
+        }
+
+        function resetToLobby() {
+            ws.send(JSON.stringify({ type: 'reset' }));
+            showScreen('lobby-screen');
+            synth.stopBgm();
+            synth.startBgm('lobby');
+        }
+
+        function downloadQrCode() {
+            const qrImg = document.getElementById('qrcodeImg');
+            if (!qrImg || !qrImg.src) return;
+            
+            fetch(qrImg.src)
+                .then(response => response.blob())
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = '遊戲加入QR_Code.png';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                })
+                .catch(err => {
+                    console.error('下載 QR Code 失敗:', err);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = qrImg.src;
+                    a.download = '遊戲加入QR_Code.png';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                });
+        }
+
+        // Utilities
+        function escapeHtml(text) {
+            if (!text) return "";
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        window.onload = () => {
+            connect();
+        };
+    </script>
+</body>
+</html>

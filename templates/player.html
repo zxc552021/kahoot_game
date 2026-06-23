@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>互動遊戲 - 玩家行動版</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&family=Noto+Sans+TC:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(22, 28, 45, 0.6);
+            --primary: #4f46e5;
+            --primary-glow: rgba(79, 70, 229, 0.4);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --border-color: rgba(255, 255, 255, 0.08);
+
+            /* Kahoot Colors */
+            --red-choice: #e21b3c;
+            --blue-choice: #1368ce;
+            --yellow-choice: #d89e00;
+            --green-choice: #26890c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            font-family: 'Outfit', 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background-image: 
+                radial-gradient(at 50% 0%, rgba(79, 70, 229, 0.12) 0px, transparent 60%),
+                radial-gradient(at 50% 100%, rgba(19, 104, 206, 0.08) 0px, transparent 60%);
+        }
+
+        /* Container & Alignment */
+        .app-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            padding: 20px;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            flex-grow: 1;
+            width: 100%;
+            min-height: 0;
+            animation: slideIn 0.3s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Typography & Headings */
+        .title {
+            font-size: 32px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #818cf8, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        /* Buttons & Inputs */
+        .form-group {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 16px 20px;
+            font-size: 18px;
+            background: rgba(17, 24, 39, 0.8);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            color: var(--text-main);
+            text-align: center;
+            font-family: inherit;
+            font-weight: 700;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--primary-glow);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px 24px;
+            border-radius: 16px;
+            font-size: 18px;
+            font-weight: 800;
+            font-family: inherit;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #6366f1);
+            color: white;
+            box-shadow: 0 4px 14px var(--primary-glow);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+
+        .btn-mute {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        /* Waiting / Lobby Screen Visuals */
+        .pulsing-logo {
+            font-size: 48px;
+            margin-bottom: 24px;
+            animation: pulse 2s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 1; filter: drop-shadow(0 0 10px rgba(79, 70, 229, 0.4)); }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+
+        .waiting-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 30px;
+            text-align: center;
+            width: 100%;
+            backdrop-filter: blur(12px);
+        }
+
+        .nickname-display {
+            font-size: 24px;
+            font-weight: 800;
+            color: #818cf8;
+            margin-bottom: 10px;
+        }
+
+        /* 4-Choice Game Buttons Grid */
+        .choices-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            height: 100%;
+            flex-grow: 1;
+            min-height: 0;
+        }
+
+        .choice-btn {
+            flex: 1;
+            min-height: 0;
+            border: none;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+            transition: transform 0.1s, opacity 0.3s;
+            position: relative;
+            color: white;
+            text-align: left;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+        }
+
+        .choice-btn:active {
+            transform: scale(0.96);
+        }
+
+        .choice-shape {
+            font-size: 26px;
+            margin-right: 15px;
+            font-weight: 900;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+            flex-shrink: 0;
+            width: 30px;
+            text-align: center;
+        }
+
+        .choice-text {
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1.3;
+            word-break: break-all;
+        }
+
+        .btn-red { background-color: var(--red-choice); }
+        .btn-blue { background-color: var(--blue-choice); }
+        .btn-yellow { background-color: var(--yellow-choice); }
+        .btn-green { background-color: var(--green-choice); }
+
+        /* Lock in answer state */
+        .choice-btn.dimmed {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+        .choice-btn.selected-choice {
+            opacity: 1;
+            transform: scale(1.02);
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.4);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Result Display Screen */
+        .result-card {
+            border-radius: 30px;
+            padding: 40px 30px;
+            text-align: center;
+            width: 100%;
+            max-width: 360px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+            backdrop-filter: blur(12px);
+            margin-bottom: 25px;
+            border: 2px solid transparent;
+        }
+
+        .result-card.correct {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: rgba(16, 185, 129, 0.4);
+            color: #34d399;
+        }
+        .result-card.wrong {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #fca5a5;
+        }
+
+        .result-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .result-title {
+            font-size: 28px;
+            font-weight: 900;
+            margin-bottom: 8px;
+        }
+
+        .points-text {
+            font-size: 20px;
+            font-weight: 800;
+            margin-top: 10px;
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border-color);
+            padding: 12px 20px;
+            border-radius: 16px;
+            min-width: 100px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 800;
+            color: #818cf8;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        /* Leaderboard and End Game */
+        .rank-badge {
+            font-size: 64px;
+            font-weight: 900;
+            color: #fbcfe8;
+            margin: 20px 0;
+            text-shadow: 0 0 15px rgba(251, 207, 232, 0.4);
+        }
+
+        /* Error messages */
+        .error-message {
+            color: #fca5a5;
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            width: 100%;
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <button class="btn-mute" onclick="toggleMute()" id="muteBtn" title="靜音">🔊</button>
+
+    <div class="app-container">
+        <!-- 1. Join Screen -->
+        <div class="screen active" id="join-screen">
+            <div class="pulsing-logo">🎮</div>
+            <h1 class="title">即時互動遊戲</h1>
+            <p class="subtitle">請輸入您的暱稱加入遊戲</p>
+            
+            <div id="joinError" class="error-message"></div>
+
+            <div class="form-group">
+                <input type="text" class="form-control" id="nicknameInput" maxlength="12" placeholder="請輸入暱稱..." autocomplete="off">
+            </div>
+            <button class="btn btn-primary" onclick="joinGame()">加入遊戲</button>
+        </div>
+
+        <!-- 2. Lobby / Waiting Screen -->
+        <div class="screen" id="lobby-screen">
+            <div class="pulsing-logo">⏳</div>
+            <div class="waiting-box">
+                <p class="nickname-display" id="myNickname">Player</p>
+                <p style="font-size: 18px; font-weight: 700; margin-bottom: 8px;">您已成功加入遊戲！</p>
+                <p style="color: var(--text-muted); font-size: 13px;">請看投影螢幕，等待主持人開始...</p>
+            </div>
+            
+            <div style="margin-top: 30px; font-size: 13px; color: var(--text-muted);">
+                目前連線玩家總數：<span id="playerCount" style="color: var(--text-main); font-weight: 700;">1</span>
+            </div>
+        </div>
+
+        <!-- 3. Get Ready Screen -->
+        <div class="screen" id="ready-screen">
+            <div style="font-size: 54px; margin-bottom: 20px;">⚡</div>
+            <h2 style="font-size: 28px; font-weight: 900; text-align: center;" id="readyText">準備好了嗎？</h2>
+            <p style="color: var(--text-muted); font-size: 14px; margin-top: 10px;">題目即將顯示在投影螢幕上！</p>
+        </div>
+
+        <!-- 4. Active Question Choices Grid -->
+        <div class="screen" id="question-screen">
+            <!-- Question text display on mobile -->
+            <div id="playerQuestionText" style="font-size: 16px; font-weight: 800; text-align: center; margin-bottom: 12px; line-height: 1.4; color: var(--text-main); width: 100%;">讀取題目中...</div>
+            
+            <div id="playerQuestionImageContainer" style="width: 100%; display: none; justify-content: center; align-items: center; margin-bottom: 12px; border-radius: 12px;">
+                <img id="playerQuestionImage" src="" style="width: 100%; height: auto; max-height: 240px; object-fit: contain; border-radius: 12px; border: 1px solid var(--border-color);" alt="題目圖片">
+            </div>
+            
+            <div class="choices-grid">
+                <button class="choice-btn btn-red" onclick="submitAnswer(0)">
+                    <span class="choice-shape">▲</span>
+                    <span class="choice-text" id="btnText0">選項 A</span>
+                </button>
+                <button class="choice-btn btn-blue" onclick="submitAnswer(1)">
+                    <span class="choice-shape">◆</span>
+                    <span class="choice-text" id="btnText1">選項 B</span>
+                </button>
+                <button class="choice-btn btn-yellow" onclick="submitAnswer(2)">
+                    <span class="choice-shape">●</span>
+                    <span class="choice-text" id="btnText2">選項 C</span>
+                </button>
+                <button class="choice-btn btn-green" onclick="submitAnswer(3)">
+                    <span class="choice-shape">■</span>
+                    <span class="choice-text" id="btnText3">選項 D</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 5. Answer Submitted / Waiting Screen -->
+        <div class="screen" id="submitted-screen">
+            <div class="pulsing-logo" style="font-size: 64px;">👍</div>
+            <h2 style="font-size: 24px; font-weight: 800;">答案已送出！</h2>
+            <p style="color: var(--text-muted); font-size: 14px; margin-top: 10px;">請等待其他玩家作答或時間結束...</p>
+        </div>
+
+        <!-- 6. Reveal Feedback Screen -->
+        <div class="screen" id="reveal-screen">
+            <div class="result-card" id="resultCard">
+                <div class="result-icon" id="resultIcon">✓</div>
+                <div class="result-title" id="resultTitle">答對了！</div>
+                <div class="points-text" id="pointsText">+0 分</div>
+            </div>
+
+            <div class="stats-row">
+                <div class="stat-item">
+                    <div class="stat-value" id="revealRank">第 - 名</div>
+                    <div class="stat-label">當前排名</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="revealScore">0</div>
+                    <div class="stat-label">累積總分</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="revealStreak">🔥 0</div>
+                    <div class="stat-label">連勝紀錄</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. Leaderboard Status Screen -->
+        <div class="screen" id="leaderboard-screen">
+            <div style="font-size: 48px; margin-bottom: 10px;">📊</div>
+            <h2 style="font-size: 22px; font-weight: 800;">您的當前名次</h2>
+            <div class="rank-badge" id="playerRank">第 1 名</div>
+            
+            <div class="stats-row" style="margin-top: 10px;">
+                <div class="stat-item">
+                    <div class="stat-value" id="leaderboardScore">0</div>
+                    <div class="stat-label">總分</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="leaderboardStreak">0</div>
+                    <div class="stat-label">連勝</div>
+                </div>
+            </div>
+            
+            <p style="color: var(--text-muted); font-size: 13px; margin-top: 30px;" id="encourageText">太棒了，繼續保持！</p>
+        </div>
+
+        <!-- 8. Game Finished / Podium Screen -->
+        <div class="screen" id="finished-screen">
+            <div style="font-size: 64px; margin-bottom: 20px;">🏆</div>
+            <h1 class="title" style="font-size: 28px;">遊戲結束！</h1>
+            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">感謝您的參與</p>
+            
+            <div class="waiting-box">
+                <p style="font-size: 16px; color: var(--text-muted);">您的最終排名</p>
+                <div class="rank-badge" id="finalRank" style="margin: 10px 0; font-size: 54px;">第 - 名</div>
+                <p style="font-size: 20px; font-weight: 800; color: #10b981;" id="finalScore">總得分: 0 分</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class PlayerAudioSynth {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+                this.bgmTimer = null;
+                this.activeBgmType = null;
+            }
+
+            init() {
+                try {
+                    if (!this.ctx) {
+                        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                        if (AudioContextClass) {
+                            this.ctx = new AudioContextClass();
+                        }
+                    }
+                    if (this.ctx && this.ctx.state === 'suspended') {
+                        this.ctx.resume().catch(e => console.warn("AudioContext resume failed:", e));
+                    }
+                } catch (e) {
+                    console.error("AudioContext initialization failed:", e);
+                }
+            }
+
+            playTone(freq, type = 'sine', duration = 0.3, vol = 0.45) {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    
+                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e) {
+                    console.error("Audio play error:", e);
+                }
+            }
+
+            playCorrect() {
+                this.playTone(523.25, 'sine', 0.15); 
+                setTimeout(() => this.playTone(659.25, 'sine', 0.15), 80); 
+                setTimeout(() => this.playTone(783.99, 'sine', 0.3), 160); 
+            }
+
+            playWrong() {
+                this.playTone(180, 'sawtooth', 0.35, 0.4);
+                setTimeout(() => this.playTone(150, 'sawtooth', 0.35, 0.4), 100);
+            }
+
+            playTriumph() {
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, idx) => {
+                    setTimeout(() => {
+                        this.playTone(freq, 'triangle', 0.4);
+                    }, idx * 100);
+                });
+            }
+
+            startBgm(type = 'tension') {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+                this.stopBgm();
+                this.activeBgmType = type;
+
+                const audioCtx = this.ctx;
+                let beatCount = 0;
+
+                if (type === 'tension') {
+                    let nextInterval = 420; // Start with 420ms per beat (approx 143 BPM)
+
+                    const playBeat = () => {
+                        if (this.muted || this.activeBgmType !== 'tension') return;
+                        try {
+                            const now = audioCtx.currentTime;
+                            const step = beatCount % 32;
+
+                            // Chord roots for A minor - D minor - G major - E major progression
+                            const rootFreqs = [
+                                110.00, 110.00, 110.00, 110.00, 110.00, 110.00, 110.00, 110.00, // Am (A2)
+                                146.83, 146.83, 146.83, 146.83, 146.83, 146.83, 146.83, 146.83, // Dm (D3)
+                                98.00,  98.00,  98.00,  98.00,  98.00,  98.00,  98.00,  98.00,  // G (G2)
+                                82.41,  82.41,  82.41,  82.41,  82.41,  82.41,  82.41,  82.41   // E (E2)
+                            ];
+                            const baseFreq = rootFreqs[step];
+
+                            // 1. Tuned Heartbeat Thump (aligned to the chord root frequency!)
+                            // "Lub" (first low thump)
+                            const osc1 = audioCtx.createOscillator();
+                            const subOsc1 = audioCtx.createOscillator();
+                            const gain1 = audioCtx.createGain();
+                            osc1.type = 'triangle';
+                            subOsc1.type = 'sine'; // Sub-bass layer
+                            
+                            // Pitch sweep for punchy kick sound
+                            osc1.frequency.setValueAtTime(baseFreq * 1.5, now);
+                            osc1.frequency.exponentialRampToValueAtTime(baseFreq * 0.5, now + 0.15);
+                            subOsc1.frequency.setValueAtTime(baseFreq * 0.75, now);
+                            subOsc1.frequency.exponentialRampToValueAtTime(baseFreq * 0.35, now + 0.15);
+                            
+                            gain1.gain.setValueAtTime(0.40, now);
+                            gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+                            
+                            osc1.connect(gain1);
+                            subOsc1.connect(gain1);
+                            gain1.connect(audioCtx.destination);
+                            osc1.start(now);
+                            subOsc1.start(now);
+                            osc1.stop(now + 0.22);
+                            subOsc1.stop(now + 0.22);
+
+                            // "Dub" (delayed thump)
+                            setTimeout(() => {
+                                if (this.muted || this.activeBgmType !== 'tension' || !this.bgmTimer) return;
+                                try {
+                                    const nowDub = audioCtx.currentTime;
+                                    const osc2 = audioCtx.createOscillator();
+                                    const subOsc2 = audioCtx.createOscillator();
+                                    const gain2 = audioCtx.createGain();
+                                    osc2.type = 'triangle';
+                                    subOsc2.type = 'sine';
+                                    
+                                    osc2.frequency.setValueAtTime(baseFreq * 1.3, nowDub);
+                                    osc2.frequency.exponentialRampToValueAtTime(baseFreq * 0.45, nowDub + 0.15);
+                                    subOsc2.frequency.setValueAtTime(baseFreq * 0.65, nowDub);
+                                    subOsc2.frequency.exponentialRampToValueAtTime(baseFreq * 0.3, nowDub + 0.15);
+                                    
+                                    gain2.gain.setValueAtTime(0.28, nowDub);
+                                    gain2.gain.exponentialRampToValueAtTime(0.001, nowDub + 0.22);
+                                    
+                                    osc2.connect(gain2);
+                                    subOsc2.connect(gain2);
+                                    gain2.connect(audioCtx.destination);
+                                    osc2.start(nowDub);
+                                    subOsc2.start(nowDub);
+                                    osc2.stop(nowDub + 0.22);
+                                    subOsc2.stop(nowDub + 0.22);
+                                } catch(e) {}
+                            }, 110);
+
+                            // 2. Groovy Bassline (Triangle wave playing root & fifth offsets)
+                            const bassPattern = [
+                                1, 0, 1, 0, 1, 0, 1, 1,
+                                1, 0, 1, 0, 1, 0, 1, 1,
+                                1, 0, 1, 0, 1, 0, 1, 1,
+                                1, 0, 1, 0, 1, 0, 1, 1
+                            ];
+                            if (bassPattern[step] === 1) {
+                                const bassOsc = audioCtx.createOscillator();
+                                const bassGain = audioCtx.createGain();
+                                bassOsc.type = 'triangle';
+                                const isFifth = (step % 8 === 4 || step % 8 === 7);
+                                const bassNote = isFifth ? baseFreq * 1.5 : baseFreq;
+                                
+                                bassOsc.frequency.setValueAtTime(bassNote, now);
+                                bassGain.gain.setValueAtTime(0.18, now);
+                                bassGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                                
+                                bassOsc.connect(bassGain);
+                                bassGain.connect(audioCtx.destination);
+                                bassOsc.start(now);
+                                bassOsc.stop(now + 0.25);
+                            }
+
+                            // 3. Tense Lead Melody (Triangle wave with lowpass filter, raised 1 octave for phone audibility)
+                            const melodyNotes = [
+                                880.00, 0, 1046.50, 0, 987.77, 0, 1318.51, 0, // A5, -, C6, -, B5, -, E6, -
+                                1174.66, 0, 1396.91, 0, 1318.51, 0, 1760.00, 0, // D6, -, F6, -, E6, -, A6, -
+                                1567.98, 0, 1975.53, 0, 1760.00, 0, 2349.32, 0, // G6, -, B6, -, A6, -, D7, -
+                                1318.51, 1479.98, 1661.22, 1975.53, 2637.02, 0, 0, 0 // E6, F#6, G#6, B6, E7, -, -, -
+                            ];
+                            const melFreq = melodyNotes[step];
+                            if (melFreq > 0) {
+                                const melOsc = audioCtx.createOscillator();
+                                const melGain = audioCtx.createGain();
+                                melOsc.type = 'triangle';
+                                melOsc.frequency.setValueAtTime(melFreq, now);
+                                
+                                const filter = audioCtx.createBiquadFilter();
+                                filter.type = 'lowpass';
+                                filter.frequency.setValueAtTime(2500, now);
+                                
+                                melGain.gain.setValueAtTime(0.18, now); // Increased volume (0.08 -> 0.18)
+                                melGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35); // Extended decay
+                                
+                                melOsc.connect(filter);
+                                filter.connect(melGain);
+                                melGain.connect(audioCtx.destination);
+                                melOsc.start(now);
+                                melOsc.stop(now + 0.35);
+                            }
+
+                            // 4. High-pitched Clock Ticks
+                            const tickOsc = audioCtx.createOscillator();
+                            const tickGain = audioCtx.createGain();
+                            tickOsc.type = 'sine';
+                            tickOsc.frequency.setValueAtTime(beatCount % 2 === 0 ? 1200 : 1500, now);
+                            tickGain.gain.setValueAtTime(0.04, now);
+                            tickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+                            tickOsc.connect(tickGain);
+                            tickGain.connect(audioCtx.destination);
+                            tickOsc.start(now);
+                            tickOsc.stop(now + 0.04);
+
+                            // 5. Final Seconds Pitch Riser (triggers after 24 beats)
+                            if (beatCount > 24 && beatCount % 4 === 0) {
+                                const sirenOsc = audioCtx.createOscillator();
+                                const sirenGain = audioCtx.createGain();
+                                sirenOsc.type = 'sine';
+                                const startHz = 400 + Math.min(600, (beatCount - 24) * 20);
+                                sirenOsc.frequency.setValueAtTime(startHz, now);
+                                sirenOsc.frequency.exponentialRampToValueAtTime(startHz * 1.5, now + 0.35);
+                                
+                                sirenGain.gain.setValueAtTime(0.035, now);
+                                sirenGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                                
+                                sirenOsc.connect(sirenGain);
+                                sirenGain.connect(audioCtx.destination);
+                                sirenOsc.start(now);
+                                sirenOsc.stop(now + 0.35);
+                            }
+
+                            // Accelerate tempo (decrease interval down to 160ms)
+                            beatCount++;
+                            nextInterval = Math.max(160, 420 - beatCount * 4.5);
+                            this.bgmTimer = setTimeout(playBeat, nextInterval);
+
+                        } catch(e) {
+                            console.error("BGM play error:", e);
+                        }
+                    };
+
+                    this.bgmTimer = setTimeout(playBeat, nextInterval);
+                } else if (type === 'cheerful') {
+                    const playCheerfulBeat = () => {
+                        if (this.muted || this.activeBgmType !== 'cheerful') return;
+                        try {
+                            const now = audioCtx.currentTime;
+                            const step = beatCount % 16;
+                            
+                            // 1. Cheerful Bassline (Triangle, bouncy and soft)
+                            const bassProgression = [
+                                130.81, 196.00, 130.81, 196.00, // C3, G3, C3, G3
+                                174.61, 261.63, 174.61, 261.63, // F3, C4, F3, C4
+                                196.00, 293.66, 196.00, 293.66, // G3, D4, G3, D4
+                                130.81, 196.00, 130.81, 130.81  // C3, G3, C3, C3
+                            ];
+                            const bassFreq = bassProgression[step];
+                            
+                            const bassOsc = audioCtx.createOscillator();
+                            const bassGain = audioCtx.createGain();
+                            bassOsc.type = 'triangle';
+                            bassOsc.frequency.setValueAtTime(bassFreq, now);
+                            
+                            bassGain.gain.setValueAtTime(0.12, now);
+                            bassGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+                            
+                            bassOsc.connect(bassGain);
+                            bassGain.connect(audioCtx.destination);
+                            bassOsc.start(now);
+                            bassOsc.stop(now + 0.22);
+                            
+                            // 2. Playful Arpeggiated Melody (Sine, sweet and bright)
+                            const melodyProgression = [
+                                329.63, 392.00, 523.25, 392.00, // E4, G4, C5, G4
+                                349.23, 440.00, 523.25, 440.00, // F4, A4, C5, A4
+                                392.00, 493.88, 587.33, 493.88, // G4, B4, D5, B4
+                                523.25, 392.00, 329.63, 261.63  // C5, G4, E4, C4
+                            ];
+                            const melodyFreq = melodyProgression[step];
+                            
+                            const melOsc = audioCtx.createOscillator();
+                            const melGain = audioCtx.createGain();
+                            melOsc.type = 'sine';
+                            melOsc.frequency.setValueAtTime(melodyFreq, now);
+                            
+                            melGain.gain.setValueAtTime(0.08, now);
+                            melGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+                            
+                            melOsc.connect(melGain);
+                            melGain.connect(audioCtx.destination);
+                            melOsc.start(now);
+                            melOsc.stop(now + 0.18);
+                            
+                            // 3. Playful off-beat shaker (high sine chirp at now + 0.15)
+                            setTimeout(() => {
+                                if (this.muted || this.activeBgmType !== 'cheerful' || !this.bgmTimer) return;
+                                try {
+                                    const nowOff = audioCtx.currentTime;
+                                    const shakeOsc = audioCtx.createOscillator();
+                                    const shakeGain = audioCtx.createGain();
+                                    shakeOsc.type = 'sine';
+                                    shakeOsc.frequency.setValueAtTime(2500, nowOff);
+                                    shakeGain.gain.setValueAtTime(0.025, nowOff);
+                                    shakeGain.gain.exponentialRampToValueAtTime(0.001, nowOff + 0.05);
+                                    shakeOsc.connect(shakeGain);
+                                    shakeGain.connect(audioCtx.destination);
+                                    shakeOsc.start(nowOff);
+                                    shakeOsc.stop(nowOff + 0.05);
+                                } catch(e) {}
+                            }, 150);
+
+                            beatCount++;
+                            this.bgmTimer = setTimeout(playCheerfulBeat, 300); // 300ms per step
+                        } catch(e) {
+                            console.error("Cheerful BGM play error:", e);
+                        }
+                    };
+                    this.bgmTimer = setTimeout(playCheerfulBeat, 300);
+                }
+            }
+
+            stopBgm() {
+                this.activeBgmType = null;
+                if (this.bgmTimer) {
+                    clearTimeout(this.bgmTimer);
+                    this.bgmTimer = null;
+                }
+            }
+        }
+
+        const audio = new PlayerAudioSynth();
+
+        function toggleMute() {
+            audio.muted = !audio.muted;
+            const btn = document.getElementById('muteBtn');
+            btn.innerText = audio.muted ? '🔇' : '🔊';
+            if (audio.muted) {
+                audio.stopBgm();
+            } else {
+                const activeScreen = document.querySelector('.screen.active');
+                if (activeScreen) {
+                    if (activeScreen.id === 'question-screen' && !isAnswered) {
+                        audio.startBgm('tension');
+                    } else if (['lobby-screen', 'ready-screen', 'submitted-screen', 'leaderboard-screen', 'finished-screen'].includes(activeScreen.id)) {
+                        audio.startBgm('cheerful');
+                    }
+                }
+            }
+        }
+
+        let ws;
+        let myNickname = '';
+        let currentQuestion = null;
+        let isAnswered = false;
+
+        // Random nickname generator
+        function generateRandomNickname() {
+            const adjs = ['閃亮的', '快樂的', '聰明的', '奔跑的', '飛翔的', '神秘的', '酷炫的', '可愛的', '勇敢的', '淘氣的', '幸運的', '溫慢的', '優雅的', '搞笑的', '威猛的', '神奇的', '霸氣的', '乖巧的'];
+            const nouns = ['獅子', '企鵝', '貓咪', '小狗', '獨角獸', '海豚', '熊貓', '兔子', '狐狸', '松鼠', '長頸鹿', '無尾熊', '老虎', '獵豹', '恐龍', '小火龍', '傑尼龜', '妙蛙種子'];
+            const randomName = adjs[Math.floor(Math.random() * adjs.length)] + nouns[Math.floor(Math.random() * nouns.length)] + Math.floor(Math.random() * 90 + 10);
+            document.getElementById('nicknameInput').value = randomName;
+        }
+
+        window.addEventListener('load', () => {
+            generateRandomNickname();
+            preloadImages();
+        });
+
+        async function preloadImages() {
+            try {
+                const response = await fetch('/api/preloads');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.urls && Array.isArray(data.urls)) {
+                        data.urls.forEach(url => {
+                            if (url) {
+                                const img = new Image();
+                                img.src = url;
+                            }
+                        });
+                    }
+                }
+            } catch (e) {
+                console.error("Image preloading error:", e);
+            }
+        }
+
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId).classList.add('active');
+            
+            if (screenId === 'question-screen') {
+                // Heartbeat plays on question screen (handled in startQuestionCountdown)
+            } else if (['lobby-screen', 'ready-screen', 'submitted-screen', 'leaderboard-screen', 'finished-screen'].includes(screenId)) {
+                audio.startBgm('cheerful');
+            } else {
+                audio.stopBgm();
+            }
+        }
+
+        function showError(msg) {
+            const errDiv = document.getElementById('joinError');
+            errDiv.innerText = msg;
+            errDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('joinError').style.display = 'none';
+        }
+
+        function joinGame() {
+            audio.init();
+            const input = document.getElementById('nicknameInput');
+            const nickname = input.value.trim();
+
+            if (!nickname) {
+                showError('請輸入您的暱稱！');
+                return;
+            }
+
+            myNickname = nickname;
+            hideError();
+
+            connectWebSocket();
+        }
+
+        function connectWebSocket() {
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                ws.send(JSON.stringify({
+                    role: 'player',
+                    nickname: myNickname
+                }));
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log("Player WS Message received:", data);
+
+                    switch(data.type) {
+                        case 'error':
+                            showError(data.message);
+                            ws.close();
+                            break;
+                            
+                        case 'join_success':
+                            document.getElementById('myNickname').innerText = myNickname;
+                            if (data.game_state === 'LOBBY') {
+                                showScreen('lobby-screen');
+                            } else {
+                                showScreen('ready-screen');
+                                document.getElementById('readyText').innerText = '準備中...';
+                            }
+                            break;
+                            
+                        case 'lobby_status':
+                            document.getElementById('playerCount').innerText = data.player_count;
+                            break;
+                            
+                        case 'question_start':
+                            isAnswered = false;
+                            currentQuestion = data;
+                            startQuestionCountdown(data);
+                            break;
+                            
+                        case 'answer_acknowledged':
+                            showScreen('submitted-screen');
+                            break;
+                            
+                        case 'reveal_player_result':
+                            showRevealResult(data);
+                            break;
+                            
+                        case 'leaderboard_player':
+                            showLeaderboardStatus(data);
+                            break;
+                            
+                        case 'game_finished':
+                            showGameFinished(data);
+                            break;
+                            
+                        case 'reset_to_lobby':
+                            isAnswered = false;
+                            showScreen('lobby-screen');
+                            break;
+                    }
+                } catch (e) {
+                    console.error("Error processing WebSocket message:", e);
+                }
+            };
+
+            ws.onclose = () => {
+                showError('與伺服器斷開連線，正在嘗試重連...');
+                showScreen('join-screen');
+            };
+
+            ws.onerror = (err) => {
+                console.error("WebSocket Error:", err);
+            };
+        }
+
+        function startQuestionCountdown(data) {
+            // Reset button classes to ensure they are clickable at the start of each question
+            document.querySelectorAll('.choice-btn').forEach(btn => {
+                btn.className = btn.className.replace(' selected-choice', '').replace(' dimmed', '');
+            });
+
+            audio.playTone(440, 'sine', 0.2);
+            
+            // Setup question text and options on mobile (include question index for context)
+            document.getElementById('playerQuestionText').innerText = `第 ${data.question_index + 1} 題：${data.question || "請看大螢幕作答"}`;
+            for (let i = 0; i < 4; i++) {
+                document.getElementById(`btnText${i}`).innerText = data.options[i];
+            }
+
+            // Setup mobile image preview
+            const imgContainer = document.getElementById('playerQuestionImageContainer');
+            const imgEl = document.getElementById('playerQuestionImage');
+            if (data.image_url) {
+                imgEl.src = data.image_url;
+                imgContainer.style.display = 'flex';
+            } else {
+                imgEl.src = '';
+                imgContainer.style.display = 'none';
+            }
+
+            if (!isAnswered) {
+                showScreen('question-screen');
+                audio.startBgm('tension');
+            }
+        }
+
+        function submitAnswer(idx) {
+            if (isAnswered) return;
+            isAnswered = true;
+            
+            try {
+                audio.stopBgm();
+            } catch (e) {
+                console.error("Error stopping BGM:", e);
+            }
+            
+            try {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                        type: 'submit_answer',
+                        answer_index: idx
+                    }));
+                } else {
+                    console.warn("WebSocket is not open. ReadyState:", ws ? ws.readyState : "null");
+                    showError('連線已中斷，無法送出答案。請重新連線！');
+                }
+            } catch (err) {
+                console.error("Failed to send answer via WS:", err);
+                showError('送出答案時發生錯誤。');
+            }
+            
+            try {
+                document.querySelectorAll('.choice-btn').forEach((btn, bIdx) => {
+                    if (bIdx === idx) {
+                        btn.classList.add('selected-choice');
+                    } else {
+                        btn.classList.add('dimmed');
+                    }
+                });
+            } catch (e) {
+                console.error("Error updating button styles:", e);
+            }
+
+            try {
+                audio.playTone(523, 'sine', 0.1);
+            } catch (e) {
+                console.error("Error playing submit tone:", e);
+            }
+        }
+
+        function showRevealResult(data) {
+            document.querySelectorAll('.choice-btn').forEach(btn => {
+                btn.className = btn.className.replace(' selected-choice', '').replace(' dimmed', '');
+            });
+
+            const card = document.getElementById('resultCard');
+            const icon = document.getElementById('resultIcon');
+            const title = document.getElementById('resultTitle');
+            const points = document.getElementById('pointsText');
+
+            if (data.is_correct) {
+                card.className = 'result-card correct';
+                icon.innerText = '✓';
+                title.innerText = '答對了！';
+                points.innerText = `+${data.points_earned} 分`;
+                audio.playCorrect();
+            } else {
+                card.className = 'result-card wrong';
+                icon.innerText = '✗';
+                title.innerText = data.selected_index === -1 ? '時間到！' : '答錯了！';
+                points.innerText = `+0 分`;
+                audio.playWrong();
+            }
+
+            document.getElementById('revealRank').innerText = `第 ${data.rank} 名`;
+            document.getElementById('revealScore').innerText = data.total_score;
+            document.getElementById('revealStreak').innerText = `🔥 ${data.streak}`;
+
+            showScreen('reveal-screen');
+        }
+
+        function showLeaderboardStatus(data) {
+            document.getElementById('playerRank').innerText = `第 ${data.rank} 名`;
+            document.getElementById('leaderboardScore').innerText = data.score;
+            document.getElementById('leaderboardStreak').innerText = data.streak;
+
+            const encourage = document.getElementById('encourageText');
+            if (data.rank === 1) {
+                encourage.innerText = '頂尖地位！稱霸群雄！🥇';
+            } else if (data.rank <= 3) {
+                encourage.innerText = '在前三名內！做得太棒了！🥈🥉';
+            } else if (data.streak >= 3) {
+                encourage.innerText = `連續答對 ${data.streak} 題！氣勢如虹！🔥`;
+            } else {
+                encourage.innerText = '再接再厲，下一題繼續衝刺！🚀';
+            }
+
+            showScreen('leaderboard-screen');
+        }
+
+        function showGameFinished(data) {
+            document.getElementById('finalRank').innerText = `第 ${data.rank} 名`;
+            document.getElementById('finalScore').innerText = `總得分: ${data.score} 分`;
+            
+            if (data.rank <= 3) {
+                audio.playTriumph();
+            }
+            showScreen('finished-screen');
+        }
+    </script>
+</body>
+</html>
