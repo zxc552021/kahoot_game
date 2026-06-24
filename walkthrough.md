@@ -234,4 +234,11 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
   - **AudioSynth 安全防護**：比照手機端，將主持人端 [templates/host.html](file:///c:/Users/asd552021/OneDrive%20-%20%E9%87%91%E8%BB%8A%E5%A4%A7%E5%A1%9A%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/%E6%A1%8C%E9%9D%A2/%E6%B8%AC%E8%A9%A6/kahoot_game/templates/host.html) 內所有的 `AudioContext` 初始化與播放邏輯封裝在 `try...catch` 中，並加入 `if (!this.ctx) return;` 存在性檢查。當音訊功能異常時會自動降級（僅在 Console 警告，不中斷執行），確保核心遊戲流程不受影響。
   - **WebSocket 訊息安全保護**：將 `ws.onmessage` 內的訊息分流處理邏輯全部封裝於 `try...catch` 中。當任一畫面渲染（如排行榜或答案公佈）發生未預期的 JS 錯誤時，能進行錯誤捕捉與 Console 記錄，避免導致整個 WebSocket 接收迴圈或後續動作崩潰。
 
+### 18. 移除主持人端背景音樂 (BGM) 功能
+- **實作邏輯**：
+  - 應使用者要求，將主持人端 [templates/host.html](file:///c:/Users/asd552021/OneDrive%20-%20%E9%87%91%E8%BB%8A%E5%A4%A7%E5%A1%9A%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/%E6%A1%8C%E9%9D%A2/%E6%B8%AC%E8%A9%A6/kahoot_game/templates/host.html) 的 `AudioSynth` 類別內 `startBgm()` 與 `stopBgm()` 函數改為空函數（Empty Functions），藉此關閉主持人大廳與答題階段的所有背景音樂（BGM）。
+  - 保留手機端玩家的背景音樂。同時保留主持人端點擊的短音效與回饋提示音（如 chime、fanfare 等）。
+  - 由於以相容空函數形式處理，可確保其他呼叫 `startBgm` 與 `stopBgm` 的程式碼無須進行任何破壞性修改，避免相容性風險。
+
+
 

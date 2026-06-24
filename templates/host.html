@@ -1017,54 +1017,11 @@
             }
 
             startBgm(type = 'lobby') {
-                if (this.muted) return;
-                this.init();
-                if (!this.ctx) return;
-                this.stopBgm();
-
-                try {
-                    const audioCtx = this.ctx;
-                    
-                    let beatCount = 0;
-                    const notes = type === 'lobby' 
-                        ? [261.63, 329.63, 392.00, 329.63, 293.66, 349.23, 440.00, 349.23] 
-                        : [110.00, 110.00, 164.81, 110.00, 130.81, 130.81, 196.00, 130.81]; 
-                    
-                    const noteLength = type === 'lobby' ? 0.35 : 0.25;
-                    const bpmInterval = type === 'lobby' ? 400 : 250; 
-
-                    this.bgmTimer = setInterval(() => {
-                        if (this.muted || !this.ctx) return;
-                        try {
-                            const osc = audioCtx.createOscillator();
-                            const gain = audioCtx.createGain();
-                            
-                            osc.type = 'sine';
-                            osc.frequency.setValueAtTime(notes[beatCount % notes.length], audioCtx.currentTime);
-                            
-                            gain.gain.setValueAtTime(type === 'lobby' ? 0.07 : 0.09, audioCtx.currentTime);
-                            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + noteLength);
-                            
-                            osc.connect(gain);
-                            gain.connect(audioCtx.destination);
-                            osc.start();
-                            osc.stop(audioCtx.currentTime + noteLength);
-                            
-                            beatCount++;
-                        } catch (err) {
-                            console.warn("BGM tick osc play failed:", err);
-                        }
-                    }, bpmInterval);
-                } catch (e) {
-                    console.warn("startBgm failed:", e);
-                }
+                // Background music on host screen is disabled by user request.
             }
 
             stopBgm() {
-                if (this.bgmTimer) {
-                    clearInterval(this.bgmTimer);
-                    this.bgmTimer = null;
-                }
+                // Background music on host screen is disabled by user request.
             }
 
             playFanfare() {
