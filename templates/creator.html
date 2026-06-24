@@ -412,8 +412,13 @@
                 <h1 class="page-title">編輯遊戲題目</h1>
                 <p class="page-desc">新增、修改或刪除互動遊戲中的選擇題與解答。您可以為題目上傳圖片。</p>
             </div>
-            <button class="btn btn-primary" onclick="addNewQuestion()">＋ 新增題目</button>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <button class="btn btn-secondary" style="padding: 10px 16px; border-radius: 12px; font-weight: bold; background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.25);" onclick="exportCurrentSet()">📤 匯出組別</button>
+                <button class="btn btn-secondary" style="padding: 10px 16px; border-radius: 12px; font-weight: bold; background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.25);" onclick="triggerImport()">📥 匯入組別</button>
+                <button class="btn btn-primary" style="padding: 10px 16px; border-radius: 12px; font-weight: bold;" onclick="addNewQuestion()">＋ 新增題目</button>
+            </div>
         </div>
+        <input type="file" id="importFileInput" accept=".json" style="display: none;" onchange="handleImportFile(this)">
 
         <div id="questionList" class="question-list">
             <!-- Questions cards will be dynamically loaded here -->
@@ -747,6 +752,76 @@
                 console.error(error);
                 showToast('連線失敗，無法儲存。', true);
             }
+        }
+
+        // Export/Import Features
+        function exportCurrentSet() {
+            if (!currentSetName) {
+                showToast("無效的組別名稱", true);
+                return;
+            }
+            fetch(`/api/questions?set=${encodeURIComponent(currentSetName)}`)
+                .then(res => {
+                    if (!res.ok) throw new Error("讀取題目失敗");
+                    return res.json();
+                })
+                .then(data => {
+                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+                    const downloadAnchor = document.createElement('a');
+                    downloadAnchor.setAttribute("href", dataStr);
+                    downloadAnchor.setAttribute("download", `${currentSetName}.json`);
+                    document.body.appendChild(downloadAnchor);
+                    downloadAnchor.click();
+                    downloadAnchor.remove();
+                    showToast("題目組別匯出成功！", false);
+                })
+                .catch(err => {
+                    console.error("Export failed:", err);
+                    showToast("匯出失敗，請重試", true);
+                });
+        }
+
+        function triggerImport() {
+            document.getElementById('importFileInput').click();
+        }
+
+        function handleImportFile(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const parsedQuestions = JSON.parse(e.target.result);
+                    if (!Array.isArray(parsedQuestions)) {
+                        alert("無效的題目格式！必須是一個 JSON 陣列。");
+                        return;
+                    }
+
+                    // Send to server
+                    const response = await fetch(`/api/questions?set=${encodeURIComponent(currentSetName)}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(parsedQuestions)
+                    });
+
+                    if (response.ok) {
+                        showToast("題目組別匯入成功！", false);
+                        await loadQuestionSets(); // reload
+                    } else {
+                        const result = await response.json();
+                        alert("匯入失敗：" + (result.detail || "格式錯誤"));
+                    }
+                } catch (err) {
+                    console.error("Import parsing failed:", err);
+                    alert("解析 JSON 檔案失敗！請確認檔案格式是否正確。");
+                } finally {
+                    input.value = ''; // reset input
+                }
+            };
+            reader.readAsText(file);
         }
 
         // UI Toast

@@ -238,7 +238,12 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
 - **實作邏輯**：
   - 應使用者要求，將主持人端 [templates/host.html](file:///c:/Users/asd552021/OneDrive%20-%20%E9%87%91%E8%BB%8A%E5%A4%A7%E5%A1%9A%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/%E6%A1%8C%E9%9D%A2/%E6%B8%AC%E8%A9%A6/kahoot_game/templates/host.html) 的 `AudioSynth` 類別內 `startBgm()` 與 `stopBgm()` 函數改為空函數（Empty Functions），藉此關閉主持人大廳與答題階段的所有背景音樂（BGM）。
   - 保留手機端玩家的背景音樂。同時保留主持人端點擊的短音效與回饋提示音（如 chime、fanfare 等）。
-  - 由於以相容空函數形式處理，可確保其他呼叫 `startBgm` 與 `stopBgm` 的程式碼無須進行任何破壞性修改，避免相容性風險。
+  - 由於以相容空函數形式處理，可確保其他呼叫 `startBgm` 與 `stopBgm` 的程式碼無須進行 any 破壞性修改，避免相容性風險。
 
-
-
+### 19. 編輯器端新增題目組別的匯入與匯出 (Import / Export JSON) 功能
+- **解決問題**：雲端部署平台（如 Render 免費版）的檔案系統是暫時性的（Ephemeral）。每次伺服器因閒置重啟或重新部署時，容器都會重設為 Git 提交的版本，導致在網頁上建立的新題目組別 JSON 檔案全部消失遺失。
+- **實作邏輯**：
+  - **解決方案一（Git 備份）**：如果在機端編輯題目，可以執行本機的 `Git上傳助手.ps1`，將新增的題目組別 `question_sets/` 下的 JSON 檔案提交並推送至 GitHub 進行永久儲存，這樣部署後就不會遺失。
+  - **解決方案二（匯入/匯出按鈕）**：在編輯器 [templates/creator.html](file:///c:/Users/asd552021/OneDrive%20-%20%E9%87%91%E8%BB%8A%E5%A4%A7%E5%A1%9A%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/%E6%A1%8C%E9%9D%A2/%E6%B8%AC%E8%A9%A6/kahoot_game/templates/creator.html) 頁面的標題旁新增了兩個按鈕：
+    - **📤 匯出組別**：調用前端 JavaScript 透過 `/api/questions?set=組別名稱` 獲取目前的題目數據，包裝成 `JSON` 檔案並自動觸發瀏覽器下載備份至主持人的本機電腦。
+    - **📥 匯入組別**：當 Render 伺服器重新啟動導致自訂組別不見時，主持人可以隨時點擊此按鈕，上傳本機已備份的 `組別名稱.json` 檔案。前端 JavaScript 會使用 `FileReader` 讀取並將數據以 `POST` 請求傳送給伺服器，自動建立與恢復題目。
