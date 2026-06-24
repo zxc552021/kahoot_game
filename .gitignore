@@ -9,3 +9,4 @@ game_state.json
 .idea/
 venv/
 env/
+*.log

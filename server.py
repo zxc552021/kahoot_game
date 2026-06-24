@@ -21,10 +21,30 @@ QUESTIONS_FILE = os.path.join(BASE_DIR, "questions.json")
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 UPLOADS_DIR = os.path.join(STATIC_DIR, "uploads")
 STATE_FILE = os.path.join(BASE_DIR, "game_state.json")
+SETS_DIR = os.path.join(BASE_DIR, "question_sets")
 
 # Ensure directories exist
 os.makedirs(TEMPLATES_DIR, exist_ok=True)
 os.makedirs(UPLOADS_DIR, exist_ok=True)
+os.makedirs(SETS_DIR, exist_ok=True)
+
+# Migration: if questions.json exists in root, move it to question_sets/預設題目.json
+DEFAULT_SET_FILE = os.path.join(SETS_DIR, "預設題目.json")
+if os.path.exists(QUESTIONS_FILE):
+    try:
+        import shutil
+        shutil.move(QUESTIONS_FILE, DEFAULT_SET_FILE)
+        print(f"Migrated questions.json to {DEFAULT_SET_FILE}")
+    except Exception as e:
+        print(f"Error migrating questions.json: {e}")
+
+# If DEFAULT_SET_FILE still doesn't exist, create an empty one
+if not os.path.exists(DEFAULT_SET_FILE):
+    try:
+        with open(DEFAULT_SET_FILE, 'w', encoding='utf-8') as f:
+            json.dump([], f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Error creating default set file: {e}")
 
 # Mount Static Files (for uploaded images)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
@@ -65,6 +85,7 @@ class GameManager:
         self.game_state: str = "LOBBY"
         self.questions: List[Dict[str, Any]] = []
         self.current_question_index: int = 0
+        self.current_set_name: str = "預設題目"
         self.timer_seconds: int = 0
         self.timer_task: Optional[asyncio.Task] = None
         # Delete old state file on startup to ensure a fresh lobby and prevent stuck states
@@ -92,6 +113,7 @@ class GameManager:
             state_data = {
                 "game_state": self.game_state,
                 "current_question_index": self.current_question_index,
+                "current_set_name": self.current_set_name,
                 "players": players_save
             }
             with open(STATE_FILE, 'w', encoding='utf-8') as f:
@@ -106,6 +128,7 @@ class GameManager:
                     state_data = json.load(f)
                 self.game_state = state_data.get("game_state", "LOBBY")
                 self.current_question_index = state_data.get("current_question_index", 0)
+                self.current_set_name = state_data.get("current_set_name", "預設題目")
                 players_load = state_data.get("players", {})
                 for name, data in players_load.items():
                     self.players[name] = {
@@ -124,15 +147,21 @@ class GameManager:
                 print(f"Error loading game state: {e}")
 
     def load_questions(self):
-        if os.path.exists(QUESTIONS_FILE):
+        set_file = os.path.join(SETS_DIR, f"{self.current_set_name}.json")
+        if os.path.exists(set_file):
             try:
-                with open(QUESTIONS_FILE, 'r', encoding='utf-8') as f:
+                with open(set_file, 'r', encoding='utf-8') as f:
                     self.questions = json.load(f)
             except Exception as e:
-                print(f"Error loading questions: {e}")
+                print(f"Error loading questions from {set_file}: {e}")
                 self.questions = []
         else:
             self.questions = []
+
+    def change_question_set(self, set_name: str):
+        self.current_set_name = set_name
+        self.load_questions()
+        self.reset_game()
 
     def get_current_question(self) -> Optional[Dict[str, Any]]:
         if 0 <= self.current_question_index < len(self.questions):
@@ -524,10 +553,84 @@ async def creator_page():
     return await get_template("creator.html")
 
 # API Endpoints
+@app.get("/api/question_sets")
+async def get_question_sets():
+    try:
+        sets = []
+        for filename in os.listdir(SETS_DIR):
+            if filename.endswith(".json"):
+                name = os.path.splitext(filename)[0]
+                filepath = os.path.join(SETS_DIR, filename)
+                try:
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        count = len(data) if isinstance(data, list) else 0
+                except Exception:
+                    count = 0
+                sets.append({"name": name, "count": count})
+        sets.sort(key=lambda x: x["name"])
+        return {
+            "current_set": game_manager.current_set_name,
+            "sets": sets
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/question_sets/new")
+async def create_question_set(name: str):
+    name = name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Set name cannot be empty")
+    
+    # Allow alphanumeric, Chinese, spaces, underscores, dashes
+    safe_name = "".join([c for c in name if c.isalnum() or c in " _-"]).strip()
+    if not safe_name:
+        raise HTTPException(status_code=400, detail="Invalid set name")
+    
+    set_file = os.path.join(SETS_DIR, f"{safe_name}.json")
+    if os.path.exists(set_file):
+        raise HTTPException(status_code=400, detail="Question set already exists")
+    
+    try:
+        async with aiofiles.open(set_file, 'w', encoding='utf-8') as f:
+            await f.write(json.dumps([], ensure_ascii=False, indent=2))
+        return {"status": "success", "name": safe_name}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/question_sets")
+async def delete_question_set(name: str):
+    name = name.strip()
+    set_file = os.path.join(SETS_DIR, f"{name}.json")
+    if not os.path.exists(set_file):
+        raise HTTPException(status_code=404, detail="Question set not found")
+    
+    json_files = [f for f in os.listdir(SETS_DIR) if f.endswith(".json")]
+    if len(json_files) <= 1:
+        raise HTTPException(status_code=400, detail="Cannot delete the last question set")
+    
+    try:
+        os.remove(set_file)
+        if name == game_manager.current_set_name:
+            remaining_files = [f for f in os.listdir(SETS_DIR) if f.endswith(".json")]
+            new_set = os.path.splitext(remaining_files[0])[0]
+            game_manager.change_question_set(new_set)
+        return {"status": "success", "message": f"Question set {name} deleted"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/questions")
-async def get_questions():
-    game_manager.load_questions()
-    return game_manager.questions
+async def get_questions(set: Optional[str] = None):
+    set_name = set or game_manager.current_set_name
+    set_file = os.path.join(SETS_DIR, f"{set_name}.json")
+    if not os.path.exists(set_file):
+        raise HTTPException(status_code=404, detail=f"Question set {set_name} not found")
+    try:
+        async with aiofiles.open(set_file, 'r', encoding='utf-8') as f:
+            content = await f.read()
+            return json.loads(content)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/preloads")
 async def get_preloads():
@@ -536,10 +639,11 @@ async def get_preloads():
     return {"urls": urls}
 
 @app.post("/api/questions")
-async def save_questions(request: Request):
+async def save_questions(request: Request, set: Optional[str] = None):
+    set_name = set or game_manager.current_set_name
+    set_file = os.path.join(SETS_DIR, f"{set_name}.json")
     try:
         new_questions = await request.json()
-        # Basic validation
         for q in new_questions:
             if not isinstance(q.get("question"), str):
                 raise HTTPException(status_code=400, detail="Invalid question text")
@@ -552,10 +656,12 @@ async def save_questions(request: Request):
             if "image_url" in q and q["image_url"] is not None and not isinstance(q["image_url"], str):
                 raise HTTPException(status_code=400, detail="Invalid image URL")
         
-        async with aiofiles.open(QUESTIONS_FILE, 'w', encoding='utf-8') as f:
+        async with aiofiles.open(set_file, 'w', encoding='utf-8') as f:
             await f.write(json.dumps(new_questions, ensure_ascii=False, indent=2))
         
-        game_manager.load_questions()
+        if set_name == game_manager.current_set_name:
+            game_manager.load_questions()
+            
         return {"status": "success", "message": "Questions updated successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -628,6 +734,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 "type": "init",
                 "game_state": game_manager.game_state,
                 "question_count": len(game_manager.questions),
+                "current_set_name": game_manager.current_set_name,
                 "local_ip": get_local_ip()
             })
             # Send current lobby list if players exist
@@ -729,6 +836,18 @@ async def websocket_endpoint(websocket: WebSocket):
                 elif msg_type == "force_reset":
                     await game_manager.force_reset_game()
                     await game_manager.send_lobby_update()
+                elif msg_type == "change_set":
+                    set_name = data.get("set_name")
+                    if set_name:
+                        game_manager.change_question_set(set_name)
+                        await game_manager.send_to_host({
+                            "type": "init",
+                            "game_state": game_manager.game_state,
+                            "question_count": len(game_manager.questions),
+                            "current_set_name": game_manager.current_set_name,
+                            "local_ip": get_local_ip()
+                        })
+                        await game_manager.send_lobby_update()
                     
             elif client_role == "player" and client_name:
                 if msg_type == "submit_answer":

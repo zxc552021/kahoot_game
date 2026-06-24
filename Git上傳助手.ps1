@@ -37,18 +37,19 @@ Write-Host "正在建立本機提交 (Commit)..." -ForegroundColor Green
 git commit -m "Initial commit for deployment"
 
 # 4. 詢問 GitHub 網址
+$defaultUrl = "https://github.com/zxc552021/kahoot_game.git"
 Write-Host ""
 Write-Host "---------------------------------------------" -ForegroundColor Yellow
-Write-Host "請至 GitHub (github.com) 登入並建立一個新的儲存庫。" -ForegroundColor Yellow
-Write-Host "然後複製儲存庫的 HTTPS 網址（例如：https://github.com/您的帳號/專案名稱.git）" -ForegroundColor Yellow
+Write-Host "已自動偵測到預設的 GitHub 儲存庫網址：" -ForegroundColor Yellow
+Write-Host "  $defaultUrl" -ForegroundColor Cyan
+Write-Host "若使用此儲存庫，請直接按下 [Enter] 鍵即可。" -ForegroundColor Yellow
+Write-Host "若要使用其他儲存庫，請貼上新的 HTTPS 網址。" -ForegroundColor Yellow
 Write-Host "---------------------------------------------" -ForegroundColor Yellow
-$repoUrl = Read-Host "請輸入您的 GitHub 儲存庫 HTTPS 網址"
-$repoUrl = $repoUrl.Trim()
+$repoInput = Read-Host "請輸入您的 GitHub 儲存庫 HTTPS 網址 [預設: $defaultUrl]"
+$repoUrl = $repoInput.Trim()
 
 if (-not $repoUrl) {
-    Write-Host "[錯誤] 網址不能為空！" -ForegroundColor Red
-    Read-Host "按 Enter 鍵結束..."
-    exit
+    $repoUrl = $defaultUrl
 }
 
 # 5. 設定遠端與推送

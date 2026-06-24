@@ -390,10 +390,19 @@
 <body>
     <header>
         <div class="logo">Interactive Quiz Creator</div>
-        <div class="nav-links">
-            <a href="/host">投影主畫面</a>
-            <a href="/player">手機玩家畫面</a>
-            <a href="/creator" class="active">題目編輯器</a>
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 14px; font-weight: 600; color: var(--text-muted);">目前組別：</span>
+                <select id="setSelect" class="form-control" style="width: auto; padding: 6px 12px; height: 38px; border-radius: 10px; background: rgba(17, 24, 39, 0.8); color: var(--text-main); font-weight: 700; border: 1px solid var(--border-color); cursor: pointer;" onchange="changeActiveSet(this.value)">
+                </select>
+                <button class="btn btn-secondary" style="padding: 8px 14px; font-size: 14px; border-radius: 10px;" onclick="createNewSet()">📁 新增組別</button>
+                <button class="btn btn-danger" style="padding: 8px 14px; font-size: 14px; border-radius: 10px;" onclick="deleteCurrentSet()">🗑️ 刪除組別</button>
+            </div>
+            <div class="nav-links">
+                <a href="/host">投影主畫面</a>
+                <a href="/player">手機玩家畫面</a>
+                <a href="/creator" class="active">題目編輯器</a>
+            </div>
         </div>
     </header>
 
@@ -416,7 +425,7 @@
     <div class="floating-footer">
         <span style="color: var(--text-muted); font-size: 14px;" id="questionCountText">共 0 個題目</span>
         <div style="display: flex; gap: 15px;">
-            <button class="btn btn-secondary" onclick="loadQuestions()">放棄變更</button>
+            <button class="btn btn-secondary" onclick="fetchQuestionsForSet(currentSetName)">放棄變更</button>
             <button class="btn btn-success" onclick="saveQuestionsToServer()">儲存題目設定</button>
         </div>
     </div>
@@ -425,16 +434,110 @@
 
     <script>
         let questions = [];
+        let currentSetName = "";
 
-        // Fetch questions from server on load
-        async function loadQuestions() {
+        async function loadQuestionSets() {
             try {
-                const response = await fetch('/api/questions');
+                const response = await fetch('/api/question_sets');
+                if (response.ok) {
+                    const data = await response.json();
+                    currentSetName = data.current_set;
+                    
+                    const setSelect = document.getElementById('setSelect');
+                    setSelect.innerHTML = '';
+                    data.sets.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.name;
+                        opt.innerText = `${s.name} (${s.count} 題)`;
+                        if (s.name === currentSetName) {
+                            opt.selected = true;
+                        }
+                        setSelect.appendChild(opt);
+                    });
+                    
+                    await fetchQuestionsForSet(currentSetName);
+                } else {
+                    showToast('讀取題目組別失敗。', true);
+                }
+            } catch (error) {
+                console.error(error);
+                showToast('伺服器連線錯誤。', true);
+            }
+        }
+
+        async function fetchQuestionsForSet(setName) {
+            try {
+                const response = await fetch(`/api/questions?set=${encodeURIComponent(setName)}`);
                 if (response.ok) {
                     questions = await response.json();
                     renderQuestions();
                 } else {
                     showToast('讀取題目失敗。', true);
+                }
+            } catch (error) {
+                console.error(error);
+                showToast('伺服器連線錯誤。', true);
+            }
+        }
+
+        async function changeActiveSet(setName) {
+            if (confirm("切換組別將會載入該組別的題目，未儲存的變更將會遺失。是否確定切換？")) {
+                currentSetName = setName;
+                await fetchQuestionsForSet(currentSetName);
+            } else {
+                document.getElementById('setSelect').value = currentSetName;
+            }
+        }
+
+        async function createNewSet() {
+            const name = prompt("請輸入新組別的名稱（例如：化學常識）：");
+            if (name === null) return;
+            
+            const trimmedName = name.trim();
+            if (!trimmedName) {
+                alert("組別名稱不能為空！");
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/question_sets/new?name=${encodeURIComponent(trimmedName)}`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    showToast('新增組別成功！', false);
+                    await loadQuestionSets();
+                    document.getElementById('setSelect').value = trimmedName;
+                    currentSetName = trimmedName;
+                    await fetchQuestionsForSet(currentSetName);
+                } else {
+                    const err = await response.json();
+                    showToast('新增組別失敗：' + (err.detail || response.statusText), true);
+                }
+            } catch (error) {
+                console.error(error);
+                showToast('伺服器連線錯誤。', true);
+            }
+        }
+
+        async function deleteCurrentSet() {
+            if (!currentSetName) return;
+            
+            if (!confirm(`⚠️ 警告：確定要刪除整個題目組別「${currentSetName}」嗎？\n此動作將會永久刪除該組別的所有題目，且無法復原！`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/question_sets?name=${encodeURIComponent(currentSetName)}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    showToast('組別刪除成功！', false);
+                    await loadQuestionSets();
+                } else {
+                    const err = await response.json();
+                    showToast('刪除組別失敗：' + (err.detail || response.statusText), true);
                 }
             } catch (error) {
                 console.error(error);
@@ -625,7 +728,7 @@
             }
 
             try {
-                const response = await fetch('/api/questions', {
+                const response = await fetch(`/api/questions?set=${encodeURIComponent(currentSetName)}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -635,6 +738,7 @@
                 
                 if (response.ok) {
                     showToast('題目儲存成功！', false);
+                    await loadQuestionSets();
                 } else {
                     const err = await response.json();
                     showToast('儲存失敗：' + (err.detail || response.statusText), true);
@@ -671,7 +775,7 @@
                 .replace(/'/g, "&#039;");
         }
 
-        window.onload = loadQuestions;
+        window.onload = loadQuestionSets;
     </script>
 </body>
 </html>

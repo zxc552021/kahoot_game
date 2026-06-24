@@ -684,6 +684,9 @@
         <div class="logo">Interactive Quiz Game</div>
         <div class="header-controls">
             <button class="sound-btn" onclick="toggleMute()" id="muteBtn" title="靜音">🔊</button>
+            <span style="font-size: 14px; font-weight: 600; color: var(--text-muted); margin-left: 10px;">遊戲題目：</span>
+            <select id="setSelect" style="width: auto; padding: 8px 12px; height: 38px; border-radius: 10px; background: #0b2317; color: var(--text-main); font-weight: 700; border: 1px solid var(--border-color); font-size: 14px; cursor: pointer;" onchange="changeQuestionSet(this.value)">
+            </select>
             <a href="/creator" target="_blank" class="btn btn-secondary" style="padding: 8px 20px; font-size: 15px; border-radius: 10px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; font-weight: 800;">題目設定</a>
             <button class="btn btn-danger" onclick="forceResetGame()" style="padding: 8px 20px; font-size: 15px; border-radius: 10px; background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; font-weight: 800; border: none; cursor: pointer; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);">💥 強制結束遊戲</button>
             <button class="btn btn-primary" id="headerControlBtn" style="display: none; padding: 8px 20px; font-size: 15px; border-radius: 10px;"></button>
@@ -1089,6 +1092,12 @@
                 switch(data.type) {
                     case 'init':
                         setupJoinDetails(data.local_ip);
+                        if (data.current_set_name) {
+                            const setSelect = document.getElementById('setSelect');
+                            if (setSelect) {
+                                setSelect.value = data.current_set_name;
+                            }
+                        }
                         if (data.game_state === 'LOBBY') {
                             synth.startBgm('lobby');
                             showScreen('lobby-screen');
@@ -1142,9 +1151,17 @@
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screenId).classList.add('active');
             updateHeaderControlBtn(screenId);
+            if (screenId === 'lobby-screen') {
+                loadQuestionSets();
+            }
         }
 
         function updateHeaderControlBtn(screenId) {
+            const setSelect = document.getElementById('setSelect');
+            if (setSelect) {
+                setSelect.disabled = (screenId !== 'lobby-screen');
+            }
+
             const btn = document.getElementById('headerControlBtn');
             if (!btn) return;
 
@@ -1467,6 +1484,40 @@
                 });
         }
 
+        async function loadQuestionSets() {
+            try {
+                const response = await fetch('/api/question_sets');
+                if (response.ok) {
+                    const data = await response.json();
+                    const setSelect = document.getElementById('setSelect');
+                    if (setSelect) {
+                        const currentVal = setSelect.value;
+                        setSelect.innerHTML = '';
+                        data.sets.forEach(s => {
+                            const opt = document.createElement('option');
+                            opt.value = s.name;
+                            opt.innerText = `${s.name} (${s.count} 題)`;
+                            setSelect.appendChild(opt);
+                        });
+                        
+                        if (currentVal && data.sets.some(s => s.name === currentVal)) {
+                            setSelect.value = currentVal;
+                        } else if (data.current_set) {
+                            setSelect.value = data.current_set;
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to load question sets:", err);
+            }
+        }
+
+        function changeQuestionSet(setName) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'change_set', set_name: setName }));
+            }
+        }
+
         // Utilities
         function escapeHtml(text) {
             if (!text) return "";
@@ -1479,6 +1530,7 @@
         }
 
         window.onload = () => {
+            loadQuestionSets();
             connect();
         };
     </script>
