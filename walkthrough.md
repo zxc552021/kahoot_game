@@ -195,3 +195,17 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
 5. **Verify Question Sets Feature**:
     - Open Creator page `/creator`, switch sets using the top-right dropdown, create a new set, add questions to it and save.
     - Open Host page `/host`, switch sets in lobby, and verify the questions update instantly. Check that starting the game disables the dropdown.
+
+### 14. 遊戲大廳標頭排版優化與寶礦力主題化
+- **解決問題**：在較窄的螢幕上，右上角控制列的按鈕文字因空間不足而換行擠壓成第二排；且左側主題文字需替換為專屬名稱與寶礦力品牌色。
+- **實作邏輯**：
+  - **排版優化**：
+    - 將所有標頭按鈕（包含「題目設定」、「強制結束遊戲」與動態控制按鈕）與狀態標籤的字型大小縮減至 `13px` / `12px`，並調整內距（padding）與間距（gap），節省橫向排版空間。
+    - 為按鈕、下拉選單、狀態標籤和標題加入 `white-space: nowrap;` CSS 樣式，**強制禁止文字換行**，徹底解決文字擠壓成兩排的問題。
+  - **寶礦力品牌化**：
+    - 左上角的主題文字修改為 **「寶礦力知識大挑戰」**。
+    - 字型顏色採用經典的寶礦力品牌藍色 (`#0066ff`)，並加上白色的細邊框文字陰影效果 (`text-shadow`)，確保在深綠色的黑板背景上擁有極佳的對比度與質感。
+
+6. **Verify Header Layout & Pocari Theme**:
+    - Access `/host` and confirm the top-left title is "寶礦力知識大挑戰" and shows in bright blue with a clean outline.
+    - Confirm all top-right controls and status badges fit cleanly on a single row without any text wrapping or line breaks.
