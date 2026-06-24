@@ -209,3 +209,10 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
 6. **Verify Header Layout & Pocari Theme**:
     - Access `/host` and confirm the top-left title is "寶礦力知識大挑戰" and shows in bright blue with a clean outline.
     - Confirm all top-right controls and status badges fit cleanly on a single row without any text wrapping or line breaks.
+
+### 15. 手機端加入遊戲與大廳同步異常修正 (Websocket Concurrency Fix)
+- **問題現象**：手機端掃描 QRcode 後，顯示「您已成功加入遊戲」，但遊戲大廳（Host）卻沒看到該玩家，且無法開始遊戲。
+- **根本原因**：在舊程式碼的 `broadcast_to_players` 中，後端透過非同步迴圈直接迭代 `self.players.items()`，並在迴圈內呼叫 `await data["ws"].send_json(message)`。由於 `await` 會讓出執行權，在此期間若有其他玩家連線或狀態變更（例如新玩家連線寫入 `self.players`），會造成字典大小在迭代過程中改變，進而拋出 `RuntimeError: dictionary changed size during iteration` 異常。
+- 此異常會傳播到該玩家的 WebSocket 處理程序中，觸發 Exception 區塊，導致伺服器從 `self.players` 中將該玩家刪除（`del game_manager.players[client_name]`）並關閉 WebSocket 連線。但因為手機端在此之前已成功接收到 `join_success` 訊息，畫面已顯示「您已成功加入遊戲」，造成手機端卡在成功畫面，但後端大廳查無此人的不同步現象。
+- **解決方案**：在 `server.py` 的 `broadcast_to_players` 函數中，使用 `list(self.players.items())` 建立靜態清單快照進行安全迭代，徹底避免併發修改導致 `RuntimeError` 的錯誤。
+- **已部署至 Render**：此修復已推送至 GitHub，並已由 Render 自動重新部署生效。
