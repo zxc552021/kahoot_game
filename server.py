@@ -218,7 +218,7 @@ class GameManager:
 
     async def broadcast_to_players(self, message: Dict[str, Any]):
         disconnected_players = []
-        for name, data in self.players.items():
+        for name, data in list(self.players.items()):
             if data["connected"] and data["ws"]:
                 try:
                     await data["ws"].send_json(message)
