@@ -516,6 +516,21 @@
             z-index: 2;
         }
 
+        .opt-count {
+            margin-left: auto;
+            font-size: 15px;
+            font-weight: 800;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 3px 10px;
+            border-radius: 20px;
+            color: var(--text-main);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+
         /* 4. Leaderboard */
         .leaderboard-list {
             max-width: 700px;
@@ -807,24 +822,28 @@
                             <svg viewBox="0 0 100 100"><polygon points="50,15 90,85 10,85" /></svg>
                         </span>
                         <span id="revealOptText0">選項 A</span>
+                        <span id="revealOptCount0" class="opt-count">0人</span>
                     </div>
                     <div class="opt-card opt-blue" id="revealOptCard1">
                         <span class="opt-icon">
                             <svg viewBox="0 0 100 100"><polygon points="50,5 95,50 50,95 5,50" /></svg>
                         </span>
                         <span id="revealOptText1">選項 B</span>
+                        <span id="revealOptCount1" class="opt-count">0人</span>
                     </div>
                     <div class="opt-card opt-yellow" id="revealOptCard2">
                         <span class="opt-icon">
                             <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" /></svg>
                         </span>
                         <span id="revealOptText2">選項 C</span>
+                        <span id="revealOptCount2" class="opt-count">0人</span>
                     </div>
                     <div class="opt-card opt-green" id="revealOptCard3">
                         <span class="opt-icon">
                             <svg viewBox="0 0 100 100"><rect x="15" y="15" width="70" height="70" /></svg>
                         </span>
                         <span id="revealOptText3">選項 D</span>
+                        <span id="revealOptCount3" class="opt-count">0人</span>
                     </div>
                 </div>
             </div>
@@ -1341,6 +1360,13 @@
                     card.classList.add('correct-answer-card');
                 } else {
                     card.classList.add('dimmed');
+                }
+
+                // Update answer counts (stats)
+                const countEl = document.getElementById(`revealOptCount${i}`);
+                if (countEl) {
+                    const countVal = (data.stats && data.stats[i] !== undefined) ? data.stats[i] : 0;
+                    countEl.innerText = `${countVal}人`;
                 }
             }
 

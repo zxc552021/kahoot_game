@@ -216,3 +216,11 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
 - 此異常會傳播到該玩家的 WebSocket 處理程序中，觸發 Exception 區塊，導致伺服器從 `self.players` 中將該玩家刪除（`del game_manager.players[client_name]`）並關閉 WebSocket 連線。但因為手機端在此之前已成功接收到 `join_success` 訊息，畫面已顯示「您已成功加入遊戲」，造成手機端卡在成功畫面，但後端大廳查無此人的不同步現象。
 - **解決方案**：在 `server.py` 的 `broadcast_to_players` 函數中，使用 `list(self.players.items())` 建立靜態清單快照進行安全迭代，徹底避免併發修改導致 `RuntimeError` 的錯誤。
 - **已部署至 Render**：此修復已推送至 GitHub，並已由 Render 自動重新部署生效。
+
+### 16. 主持人公佈答案畫面新增玩家答題選項計數功能
+- **解決問題**：原本主持人公佈答案時，只能看到玩家的排行榜，但無法得知有多少玩家選擇了每一個答案選項（例如有幾個人選 A、幾個人選 B）。
+- **實作邏輯**：
+  - **HTML 部分**：在公佈答案畫面的四個答案選項卡片（`#revealOptCard0` 到 `#revealOptCard3`）右側，新增了 `<span class="opt-count">` 標籤，預設顯示 `0人`。
+  - **CSS 部分**：在標頭樣式檔中新增 `.opt-count` 的樣式，設定 `margin-left: auto;` 使其靠右對齊，並搭配半透明白色背景 (`rgba(255,255,255,0.15)`)、圓角外框與較粗的字體，使其看起來精緻醒目且不遮擋選項文字。
+  - **JavaScript 部分**：在 [templates/host.html](file:///c:/Users/asd552021/OneDrive%20-%20%E9%87%91%E8%BB%8A%E5%A4%A7%E5%A1%9A%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/%E6%A1%8C%E9%9D%A2/%E6%B8%AC%E8%A9%A6/kahoot_game/templates/host.html) 的 `showRevealScreen(data)` 函數中，讀取由後端發送過來的 `data.stats` 選項作答統計陣列，並將各選項的人數動態更新至卡片的 `.opt-count` 元素中。
+
