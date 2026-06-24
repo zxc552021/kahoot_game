@@ -179,3 +179,19 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
     - Open Host page `/host` and join with multiple Player pages `/player`.
     - Click "💥 強制結束遊戲" on the top right of the Host page and confirm.
     - Verify that Host page immediately returns to the Lobby with player count reset to `0`, and all Player pages redirect to the nickname join screen.
+
+### 13. 自訂複數題目組別與多資料庫管理功能
+- **解決問題**：原本系統只能編輯與使用單一的 `questions.json`，無法設定複數類型的自訂題目組別。
+- **實作邏輯**：
+  - **資料庫升級**：在後端新增了 `question_sets/` 目錄，每一套題目組別皆儲存為一個獨立的 JSON 檔案（例如 `預設題目.json`）。系統會在啟動時自動將原有的舊 `questions.json` 遷移至 `question_sets/預設題目.json`，確保資料無縫升級且不遺失。
+  - **編輯器端 (Creator)**：
+    - 右上角新增「目前組別」下拉選單，並附帶 **「📁 新增組別」** 與 **「🗑️ 刪除組別」** 按鈕。
+    - 點擊「新增組別」可透過對話視窗輸入名稱並立即建立新的空白組別；點擊「刪除組別」則可永久刪除該組別（限制至少保留一個組別）。
+    - 編輯題目與儲存時，皆會自動關聯並更新當前選定的組別檔案。
+  - **主持人投影端 (Host)**：
+    - 右上角標頭新增了「遊戲題目」下拉選單。在大廳時，主持人可隨時切換題目組別，切換時會即時重新載入題目並重設大廳狀態與題目總數。
+    - 當遊戲開始後，該選單會自動停用，以防止遊戲中途誤切換。
+
+5. **Verify Question Sets Feature**:
+    - Open Creator page `/creator`, switch sets using the top-right dropdown, create a new set, add questions to it and save.
+    - Open Host page `/host`, switch sets in lobby, and verify the questions update instantly. Check that starting the game disables the dropdown.
