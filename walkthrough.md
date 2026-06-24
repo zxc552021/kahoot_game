@@ -166,3 +166,16 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
 
 3. **Verify Git Upload Helper**:
     - Confirm that [Git上傳助手.ps1](file:///c:/Users/asd552021/OneDrive%20-%20%E9%87%91%E8%BB%8A%E5%A4%A7%E5%A1%9A%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/%E6%A1%8C%E9%9D%A2/%E6%B8%AC%E8%A9%A6/kahoot_game/Git%E4%B8%8A%E5%82%B3%E5%8A%A9%E6%89%8B.ps1) exists in the project root.
+
+### 12. 強制結束遊戲並清空大廳玩家功能
+- **解決問題**：當玩家手機網頁異常退出時（如直接關閉瀏覽器），因為 TCP 半開連線，伺服器可能無法即時偵測到斷線，導致該「幽靈玩家」依然留在遊戲狀態中，阻礙了主持人重設或開始新遊戲。
+- **實作邏輯**：
+  - 在主持人端右上角標頭（Header）控制區新增了紅色的 **「💥 強制結束遊戲」** 按鈕。
+  - 當主持人點擊並確認後，會發送 `force_reset` 訊息給後端。
+  - 後端會立即中斷並關閉所有目前連線玩家的 WebSocket 連線，徹底清空 `self.players = {}` 字典，並刪除暫存的 `game_state.json` 檔案。
+  - 玩家端會因為連線關閉，自動被引導至暱稱輸入畫面（登入頁面），可重新輸入加入大廳，確保不殘留任何幽靈玩家。
+
+4. **Verify Force Reset Game Feature**:
+    - Open Host page `/host` and join with multiple Player pages `/player`.
+    - Click "💥 強制結束遊戲" on the top right of the Host page and confirm.
+    - Verify that Host page immediately returns to the Lobby with player count reset to `0`, and all Player pages redirect to the nickname join screen.
