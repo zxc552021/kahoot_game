@@ -919,34 +919,48 @@
                 this.ctx = null;
                 this.muted = false;
                 this.bgmNode = null;
+                this.bgmTimer = null;
             }
 
             init() {
-                if (!this.ctx) {
-                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-                }
-                if (this.ctx.state === 'suspended') {
-                    this.ctx.resume();
+                try {
+                    if (!this.ctx) {
+                        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                        if (AudioContextClass) {
+                            this.ctx = new AudioContextClass();
+                        }
+                    }
+                    if (this.ctx && this.ctx.state === 'suspended') {
+                        this.ctx.resume().catch(e => console.warn("AudioContext resume failed:", e));
+                    }
+                } catch (e) {
+                    console.error("AudioContext initialization failed:", e);
+                    this.ctx = null;
                 }
             }
 
             playChime(freq, type = 'sine', duration = 0.5) {
                 if (this.muted) return;
                 this.init();
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                
-                osc.type = type;
-                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-                
-                gain.gain.setValueAtTime(0.35, this.ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
-                
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                
-                osc.start();
-                osc.stop(this.ctx.currentTime + duration);
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    
+                    gain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch (e) {
+                    console.warn("playChime failed:", e);
+                }
             }
 
             playTick() {
@@ -954,72 +968,96 @@
             }
 
             playCorrect() {
-                const now = this.ctx ? this.ctx.currentTime : 0;
-                this.playChime(523.25, 'sine', 0.2); // C5
-                setTimeout(() => this.playChime(659.25, 'sine', 0.2), 100); // E5
-                setTimeout(() => this.playChime(783.99, 'sine', 0.4), 200); // G5
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+                try {
+                    this.playChime(523.25, 'sine', 0.2); // C5
+                    setTimeout(() => this.playChime(659.25, 'sine', 0.2), 100); // E5
+                    setTimeout(() => this.playChime(783.99, 'sine', 0.4), 200); // G5
+                } catch (e) {
+                    console.warn("playCorrect failed:", e);
+                }
             }
 
             playWrong() {
                 if (this.muted) return;
                 this.init();
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(130, this.ctx.currentTime);
-                osc.frequency.linearRampToValueAtTime(100, this.ctx.currentTime + 0.4);
-                
-                gain.gain.setValueAtTime(0.30, this.ctx.currentTime);
-                gain.gain.linearRampToValueAtTime(0.001, this.ctx.currentTime + 0.4);
-                
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-                osc.start();
-                osc.stop(this.ctx.currentTime + 0.4);
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(130, this.ctx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(100, this.ctx.currentTime + 0.4);
+                    
+                    gain.gain.setValueAtTime(0.30, this.ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.001, this.ctx.currentTime + 0.4);
+                    
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.4);
+                } catch (e) {
+                    console.warn("playWrong failed:", e);
+                }
             }
 
             playLeaderboardSound() {
-                this.playChime(440, 'triangle', 0.15);
-                setTimeout(() => this.playChime(554, 'triangle', 0.15), 120);
-                setTimeout(() => this.playChime(659, 'triangle', 0.3), 240);
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+                try {
+                    this.playChime(440, 'triangle', 0.15);
+                    setTimeout(() => this.playChime(554, 'triangle', 0.15), 120);
+                    setTimeout(() => this.playChime(659, 'triangle', 0.3), 240);
+                } catch (e) {
+                    console.warn("playLeaderboardSound failed:", e);
+                }
             }
 
             startBgm(type = 'lobby') {
                 if (this.muted) return;
                 this.init();
+                if (!this.ctx) return;
                 this.stopBgm();
 
-                const audioCtx = this.ctx;
-                const bufferSize = audioCtx.sampleRate * 2;
-                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-                const data = buffer.getChannelData(0);
-                
-                let beatCount = 0;
-                const notes = type === 'lobby' 
-                    ? [261.63, 329.63, 392.00, 329.63, 293.66, 349.23, 440.00, 349.23] 
-                    : [110.00, 110.00, 164.81, 110.00, 130.81, 130.81, 196.00, 130.81]; 
-                
-                const noteLength = type === 'lobby' ? 0.35 : 0.25;
-                const bpmInterval = type === 'lobby' ? 400 : 250; 
+                try {
+                    const audioCtx = this.ctx;
+                    
+                    let beatCount = 0;
+                    const notes = type === 'lobby' 
+                        ? [261.63, 329.63, 392.00, 329.63, 293.66, 349.23, 440.00, 349.23] 
+                        : [110.00, 110.00, 164.81, 110.00, 130.81, 130.81, 196.00, 130.81]; 
+                    
+                    const noteLength = type === 'lobby' ? 0.35 : 0.25;
+                    const bpmInterval = type === 'lobby' ? 400 : 250; 
 
-                this.bgmTimer = setInterval(() => {
-                    if (this.muted) return;
-                    const osc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-                    
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(notes[beatCount % notes.length], audioCtx.currentTime);
-                    
-                    gain.gain.setValueAtTime(type === 'lobby' ? 0.07 : 0.09, audioCtx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + noteLength);
-                    
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
-                    osc.start();
-                    osc.stop(audioCtx.currentTime + noteLength);
-                    
-                    beatCount++;
-                }, bpmInterval);
+                    this.bgmTimer = setInterval(() => {
+                        if (this.muted || !this.ctx) return;
+                        try {
+                            const osc = audioCtx.createOscillator();
+                            const gain = audioCtx.createGain();
+                            
+                            osc.type = 'sine';
+                            osc.frequency.setValueAtTime(notes[beatCount % notes.length], audioCtx.currentTime);
+                            
+                            gain.gain.setValueAtTime(type === 'lobby' ? 0.07 : 0.09, audioCtx.currentTime);
+                            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + noteLength);
+                            
+                            osc.connect(gain);
+                            gain.connect(audioCtx.destination);
+                            osc.start();
+                            osc.stop(audioCtx.currentTime + noteLength);
+                            
+                            beatCount++;
+                        } catch (err) {
+                            console.warn("BGM tick osc play failed:", err);
+                        }
+                    }, bpmInterval);
+                } catch (e) {
+                    console.warn("startBgm failed:", e);
+                }
             }
 
             stopBgm() {
@@ -1032,12 +1070,17 @@
             playFanfare() {
                 if (this.muted) return;
                 this.init();
-                const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
-                notes.forEach((freq, idx) => {
-                    setTimeout(() => {
-                        this.playChime(freq, 'sawtooth', 0.6);
-                    }, idx * 100);
-                });
+                if (!this.ctx) return;
+                try {
+                    const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
+                    notes.forEach((freq, idx) => {
+                        setTimeout(() => {
+                            this.playChime(freq, 'sawtooth', 0.6);
+                        }, idx * 100);
+                    });
+                } catch (e) {
+                    console.warn("playFanfare failed:", e);
+                }
             }
         }
 
@@ -1107,55 +1150,59 @@
             };
 
             ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
-                console.log("Host WS Message received:", data);
-                
-                switch(data.type) {
-                    case 'init':
-                        setupJoinDetails(data.local_ip);
-                        if (data.current_set_name) {
-                            const setSelect = document.getElementById('setSelect');
-                            if (setSelect) {
-                                setSelect.value = data.current_set_name;
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log("Host WS Message received:", data);
+                    
+                    switch(data.type) {
+                        case 'init':
+                            setupJoinDetails(data.local_ip);
+                            if (data.current_set_name) {
+                                const setSelect = document.getElementById('setSelect');
+                                if (setSelect) {
+                                    setSelect.value = data.current_set_name;
+                                }
                             }
-                        }
-                        if (data.game_state === 'LOBBY') {
-                            synth.startBgm('lobby');
-                            showScreen('lobby-screen');
-                        }
-                        break;
-                        
-                    case 'lobby_update':
-                        updateLobbyList(data.players);
-                        break;
-                        
-                    case 'question_start':
-                        showQuestion(data);
-                        break;
-                        
-                    case 'timer_tick':
-                        updateTimer(data.seconds_left);
-                        break;
-                        
-                    case 'answer_received':
-                        document.getElementById('answerCount').innerText = data.answered_count;
-                        break;
-                        
-                    case 'reveal_answers':
-                        showRevealScreen(data);
-                        break;
-                        
-                    case 'leaderboard':
-                        updateLeaderboard(data.leaderboard);
-                        break;
-                        
-                    case 'podium':
-                        showPodium(data.podium);
-                        break;
-                        
-                    case 'error':
-                        alert(data.message);
-                        break;
+                            if (data.game_state === 'LOBBY') {
+                                synth.startBgm('lobby');
+                                showScreen('lobby-screen');
+                            }
+                            break;
+                            
+                        case 'lobby_update':
+                            updateLobbyList(data.players);
+                            break;
+                            
+                        case 'question_start':
+                            showQuestion(data);
+                            break;
+                            
+                        case 'timer_tick':
+                            updateTimer(data.seconds_left);
+                            break;
+                            
+                        case 'answer_received':
+                            document.getElementById('answerCount').innerText = data.answered_count;
+                            break;
+                            
+                        case 'reveal_answers':
+                            showRevealScreen(data);
+                            break;
+                            
+                        case 'leaderboard':
+                            updateLeaderboard(data.leaderboard);
+                            break;
+                            
+                        case 'podium':
+                            showPodium(data.podium);
+                            break;
+                            
+                        case 'error':
+                            alert(data.message);
+                            break;
+                    }
+                } catch (err) {
+                    console.error("Error processing Host WS message:", err);
                 }
             };
 

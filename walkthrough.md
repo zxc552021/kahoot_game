@@ -224,3 +224,14 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
   - **CSS 部分**：在標頭樣式檔中新增 `.opt-count` 的樣式，設定 `margin-left: auto;` 使其靠右對齊，並搭配半透明白色背景 (`rgba(255,255,255,0.15)`)、圓角外框與較粗的字體，使其看起來精緻醒目且不遮擋選項文字。
   - **JavaScript 部分**：在 [templates/host.html](file:///c:/Users/asd552021/OneDrive%20-%20%E9%87%91%E8%BB%8A%E5%A4%A7%E5%A1%9A%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/%E6%A1%8C%E9%9D%A2/%E6%B8%AC%E8%A9%A6/kahoot_game/templates/host.html) 的 `showRevealScreen(data)` 函數中，讀取由後端發送過來的 `data.stats` 選項作答統計陣列，並將各選項的人數動態更新至卡片的 `.opt-count` 元素中。
 
+### 17. 主持人畫面「下一題」卡住/無反應異常修正 (AudioContext & WebSocket try-catch)
+- **問題現象**：當主持人點擊「下一題」後，主持人畫面沒有任何變化，但手機端有正常更新並進入下一題。
+- **根本原因**：當主持人點擊下一題時，伺服器發送了 `question_start` 訊息給主持人與玩家。主持人接收到後會執行 `showQuestion(data)` 函數。然而在 `showQuestion(data)` 函數開頭會呼叫 `synth.startBgm('game')` 啟動背景音樂。
+  - 在部分瀏覽器或環境下，若系統音訊裝置被佔用、尚未授權或載入異常，Web Audio API 的 `AudioContext` 建立或 `resume()` 可能會拋出嚴重的 runtime 異常。
+  - 由於原程式碼的 `AudioSynth` 沒有像手機端一樣實作安全防護，此異常會直接造成 JavaScript 執行中斷，導致 `showQuestion` 函數在切換畫面（`showScreen('question-screen')`）之前就崩潰終止。
+  - 其結果就是：手機端正常換題，但主持人端畫面完全卡在上一題的公佈答案畫面。
+- **解決方案**：
+  - **AudioSynth 安全防護**：比照手機端，將主持人端 [templates/host.html](file:///c:/Users/asd552021/OneDrive%20-%20%E9%87%91%E8%BB%8A%E5%A4%A7%E5%A1%9A%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/%E6%A1%8C%E9%9D%A2/%E6%B8%AC%E8%A9%A6/kahoot_game/templates/host.html) 內所有的 `AudioContext` 初始化與播放邏輯封裝在 `try...catch` 中，並加入 `if (!this.ctx) return;` 存在性檢查。當音訊功能異常時會自動降級（僅在 Console 警告，不中斷執行），確保核心遊戲流程不受影響。
+  - **WebSocket 訊息安全保護**：將 `ws.onmessage` 內的訊息分流處理邏輯全部封裝於 `try...catch` 中。當任一畫面渲染（如排行榜或答案公佈）發生未預期的 JS 錯誤時，能進行錯誤捕捉與 Console 記錄，避免導致整個 WebSocket 接收迴圈或後續動作崩潰。
+
+
