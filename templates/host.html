@@ -685,6 +685,7 @@
         <div class="header-controls">
             <button class="sound-btn" onclick="toggleMute()" id="muteBtn" title="靜音">🔊</button>
             <a href="/creator" target="_blank" class="btn btn-secondary" style="padding: 8px 20px; font-size: 15px; border-radius: 10px; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; font-weight: 800;">題目設定</a>
+            <button class="btn btn-danger" onclick="forceResetGame()" style="padding: 8px 20px; font-size: 15px; border-radius: 10px; background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; font-weight: 800; border: none; cursor: pointer; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);">💥 強制結束遊戲</button>
             <button class="btn btn-primary" id="headerControlBtn" style="display: none; padding: 8px 20px; font-size: 15px; border-radius: 10px;"></button>
             <div class="status-badge">
                 <span class="status-dot" id="statusDot"></span>
@@ -1426,6 +1427,15 @@
             showScreen('lobby-screen');
             synth.stopBgm();
             synth.startBgm('lobby');
+        }
+
+        function forceResetGame() {
+            if (confirm("⚠️ 警告：強制結束遊戲將會中斷並踢出所有連線玩家，且完全清空玩家列表。\n您確定要強制結束遊戲並返回主畫面嗎？")) {
+                ws.send(JSON.stringify({ type: 'force_reset' }));
+                showScreen('lobby-screen');
+                synth.stopBgm();
+                synth.startBgm('lobby');
+            }
         }
 
         function downloadQrCode() {

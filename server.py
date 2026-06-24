@@ -159,6 +159,34 @@ class GameManager:
                 self.players[name]["points_earned"] = 0
         self.save_state()
 
+    async def force_reset_game(self):
+        self.game_state = "LOBBY"
+        self.current_question_index = 0
+        self.timer_seconds = 0
+        if self.timer_task:
+            self.timer_task.cancel()
+            self.timer_task = None
+        
+        # Close all player WebSocket connections to kick them to the login screen
+        for name, data in list(self.players.items()):
+            ws = data.get("ws")
+            if ws:
+                try:
+                    await ws.send_json({"type": "reset_to_lobby"})
+                    await ws.close()
+                except Exception:
+                    pass
+        
+        # Completely clear players
+        self.players = {}
+        
+        # Delete state file to ensure fresh start
+        if os.path.exists(STATE_FILE):
+            try:
+                os.remove(STATE_FILE)
+            except Exception:
+                pass
+
     async def broadcast_to_players(self, message: Dict[str, Any]):
         disconnected_players = []
         for name, data in self.players.items():
@@ -698,6 +726,9 @@ async def websocket_endpoint(websocket: WebSocket):
                     game_manager.reset_game()
                     await game_manager.send_lobby_update()
                     await game_manager.broadcast_to_players({"type": "reset_to_lobby"})
+                elif msg_type == "force_reset":
+                    await game_manager.force_reset_game()
+                    await game_manager.send_lobby_update()
                     
             elif client_role == "player" and client_name:
                 if msg_type == "submit_answer":
