@@ -5,8 +5,9 @@ import asyncio
 import time
 import io
 import uuid
+import subprocess
 from typing import Dict, Any, List, Optional
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, HTTPException, UploadFile, File
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, HTTPException, UploadFile, File, BackgroundTasks
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 import aiofiles
@@ -74,6 +75,49 @@ def get_local_ip() -> str:
         except Exception:
             pass
     return ip
+
+def git_push_background():
+    # Check if we are running in Render environment
+    if "RENDER" in os.environ:
+        print("[Git Auto-Push] Detected Render cloud environment. Skipping auto-push to GitHub.")
+        return
+
+    # Check if .git directory exists
+    git_dir = os.path.join(BASE_DIR, ".git")
+    if not os.path.exists(git_dir):
+        print(f"[Git Auto-Push] No .git folder found at {git_dir}. Skipping auto-push to GitHub.")
+        return
+
+    try:
+        print("[Git Auto-Push] Starting git commit and push...")
+
+        # 1. Add all changes in the project directory
+        # This stages updated JSON files in question_sets/ and uploaded files in static/uploads/
+        subprocess.run(["git", "add", "."], cwd=BASE_DIR, check=True, capture_output=True, text=True)
+
+        # 2. Check if there are changes staged for commit
+        status_proc = subprocess.run(["git", "status", "--porcelain"], cwd=BASE_DIR, check=True, capture_output=True, text=True)
+        if not status_proc.stdout.strip():
+            print("[Git Auto-Push] No changes to commit. Skipping push.")
+            return
+
+        # 3. Commit changes
+        commit_msg = f"Auto-save question sets & uploads at {time.strftime('%Y-%m-%d %H:%M:%S')}"
+        subprocess.run(["git", "commit", "-m", commit_msg], cwd=BASE_DIR, check=True, capture_output=True, text=True)
+
+        # 4. Push to GitHub main branch
+        # 30-second timeout to prevent hanging due to networking issues
+        push_proc = subprocess.run(["git", "push", "origin", "main"], cwd=BASE_DIR, check=True, timeout=30, capture_output=True, text=True)
+        print(f"[Git Auto-Push] Successfully pushed changes to GitHub.\n{push_proc.stdout}")
+
+    except subprocess.TimeoutExpired as te:
+        print(f"[Git Auto-Push] Timeout expired during git push: {te}")
+    except subprocess.CalledProcessError as cpe:
+        print(f"[Git Auto-Push] Git command failed: {cpe.cmd}")
+        print(f"Stdout: {cpe.stdout}")
+        print(f"Stderr: {cpe.stderr}")
+    except Exception as e:
+        print(f"[Git Auto-Push] Unexpected error during git push: {e}")
 
 # Global Game Manager
 class GameManager:
@@ -577,7 +621,7 @@ async def get_question_sets():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/question_sets/new")
-async def create_question_set(name: str):
+async def create_question_set(name: str, background_tasks: BackgroundTasks):
     name = name.strip()
     if not name:
         raise HTTPException(status_code=400, detail="Set name cannot be empty")
@@ -594,12 +638,13 @@ async def create_question_set(name: str):
     try:
         async with aiofiles.open(set_file, 'w', encoding='utf-8') as f:
             await f.write(json.dumps([], ensure_ascii=False, indent=2))
+        background_tasks.add_task(git_push_background)
         return {"status": "success", "name": safe_name}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/api/question_sets")
-async def delete_question_set(name: str):
+async def delete_question_set(name: str, background_tasks: BackgroundTasks):
     name = name.strip()
     set_file = os.path.join(SETS_DIR, f"{name}.json")
     if not os.path.exists(set_file):
@@ -615,6 +660,7 @@ async def delete_question_set(name: str):
             remaining_files = [f for f in os.listdir(SETS_DIR) if f.endswith(".json")]
             new_set = os.path.splitext(remaining_files[0])[0]
             game_manager.change_question_set(new_set)
+        background_tasks.add_task(git_push_background)
         return {"status": "success", "message": f"Question set {name} deleted"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -639,7 +685,7 @@ async def get_preloads():
     return {"urls": urls}
 
 @app.post("/api/questions")
-async def save_questions(request: Request, set: Optional[str] = None):
+async def save_questions(request: Request, background_tasks: BackgroundTasks, set: Optional[str] = None):
     set_name = set or game_manager.current_set_name
     set_file = os.path.join(SETS_DIR, f"{set_name}.json")
     try:
@@ -662,6 +708,7 @@ async def save_questions(request: Request, set: Optional[str] = None):
         if set_name == game_manager.current_set_name:
             game_manager.load_questions()
             
+        background_tasks.add_task(git_push_background)
         return {"status": "success", "message": "Questions updated successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
