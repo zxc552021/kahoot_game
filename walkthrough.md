@@ -248,3 +248,28 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
     - **📤 匯出組別**：調用前端 JavaScript 透過 `/api/questions?set=組別名稱` 獲取目前的題目數據，將檔名預設命名為 `寶礦力遊戲題目_[組別名稱].json`，自動觸發瀏覽器下載並儲存至本機電腦的預設下載資料夾中，方便直接點選傳遞。
     - **📥 匯入組別**：當 Render 伺服器重新啟動或管理者拿到備份 JSON 檔案時，只需點擊此按鈕，即可打開檔案瀏覽器。點選「桌面」或自訂儲存路徑，上傳對應的 `寶礦力遊戲題目_[組別名稱].json`。前端會使用 `FileReader` 讀取數據並透過 `POST` API 還原題目。
 
+### 20. 題目儲存/新增/刪除時自動推送至 GitHub 功能
+- **解決問題**：為了讓管理者在本機儲存題目、新增或刪除題目組別後，不需手動執行上傳腳本，題目便能自動更新至 GitHub，進而觸發 Render.com 自動拉取並重啟部署新題目。
+- **實作邏輯**：
+  - **非阻塞背景任務**：在 `server.py` 中，使用 FastAPI 內建的 `BackgroundTasks`，在收到儲存、新增組別或刪除組別的 API 請求且寫入本機檔案成功後，將 Git 上傳工作加入背景任務佇列中。這使得 API 能立刻回傳成功訊息，不會讓網頁前端因為等待 Git 上傳而卡死。
+  - **Git 自動推送輔助函式 (`git_push_background`)**：
+    - 自動偵測環境：若偵測到 `RENDER` 環境變數（代表正執行於雲端容器），或是找不到 `.git` 資料夾，則會自動安全退出，避免在雲端拋出寫入與權限錯誤。
+    - 智慧變更偵測：執行 `git add .` 將所有變更檔案與上傳的圖片加入暫存，接著利用 `git status --porcelain` 判斷是否有實質的修改。如果內容沒有變化，則跳過 commit，避免產生無意義的空白 commit。
+    - 推送 GitHub：執行 `git commit -m "Auto-save question sets & uploads at <時間>"` 與 `git push origin main` 將本機的更新直接推送至 GitHub 的遠端儲存庫，並設定 30 秒的網路超時防護，保證連線不通時伺服器不會無限期卡死。
+
+---
+
+## How to Test & Verify
+
+1. **Verify GitHub Auto-Push Feature**:
+   - 確保本機專案已關聯您的 GitHub 遠端儲存庫（您已在本機設定過 Git 憑證憑證助手或登入授權）。
+   - 開啟本機伺服器並前往題目編輯器 `/creator`，隨意修改某道題目或新增一個題目組別。
+   - 點選「儲存題目設定」或建立組別。
+   - 檢查伺服器終端機 Log，應會印出：
+     ```text
+     [Git Auto-Push] Starting git commit and push...
+     [Git Auto-Push] Successfully pushed changes to GitHub.
+     ```
+   - 前往您的 GitHub 儲存庫頁面，確認已自動新增一個 Commit，且 question_sets 下的 JSON 檔案內容已同步更新。
+   - 若沒有做任何修改直接點擊「儲存」，伺服器 Log 會正確顯示 `[Git Auto-Push] No changes to commit. Skipping push.`，且不會產生新的 Commit。
+
