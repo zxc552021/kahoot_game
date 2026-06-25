@@ -245,5 +245,6 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
 - **實作邏輯**：
   - **解決方案一（Git 備份）**：如果在機端編輯題目，可以執行本機的 `Git上傳助手.ps1`，將新增的題目組別 `question_sets/` 下的 JSON 檔案提交並推送至 GitHub 進行永久儲存，這樣部署後就不會遺失。
   - **解決方案二（匯入/匯出按鈕）**：在編輯器 [templates/creator.html](file:///c:/Users/asd552021/OneDrive%20-%20%E9%87%91%E8%BB%8A%E5%A4%A7%E5%A1%9A%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/%E6%A1%8C%E9%9D%A2/%E6%B8%AC%E8%A9%A6/kahoot_game/templates/creator.html) 頁面的標題旁新增了兩個按鈕：
-    - **📤 匯出組別**：調用前端 JavaScript 透過 `/api/questions?set=組別名稱` 獲取目前的題目數據，包裝成 `JSON` 檔案並自動觸發瀏覽器下載備份至主持人的本機電腦。
-    - **📥 匯入組別**：當 Render 伺服器重新啟動導致自訂組別不見時，主持人可以隨時點擊此按鈕，上傳本機已備份的 `組別名稱.json` 檔案。前端 JavaScript 會使用 `FileReader` 讀取並將數據以 `POST` 請求傳送給伺服器，自動建立與恢復題目。
+    - **📤 匯出組別**：調用前端 JavaScript 透過 `/api/questions?set=組別名稱` 獲取目前的題目數據，將檔名預設命名為 `寶礦力遊戲題目_[組別名稱].json`，自動觸發瀏覽器下載並儲存至本機電腦的預設下載資料夾中，方便直接點選傳遞。
+    - **📥 匯入組別**：當 Render 伺服器重新啟動或管理者拿到備份 JSON 檔案時，只需點擊此按鈕，即可打開檔案瀏覽器。點選「桌面」或自訂儲存路徑，上傳對應的 `寶礦力遊戲題目_[組別名稱].json`。前端會使用 `FileReader` 讀取數據並透過 `POST` API 還原題目。
+
