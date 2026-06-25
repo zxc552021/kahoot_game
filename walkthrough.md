@@ -257,6 +257,14 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
     - 智慧變更偵測：執行 `git add .` 將所有變更檔案與上傳的圖片加入暫存，接著利用 `git status --porcelain` 判斷是否有實質的修改。如果內容沒有變化，則跳過 commit，避免產生無意義的空白 commit。
     - 推送 GitHub：執行 `git commit -m "Auto-save question sets & uploads at <時間>"` 與 `git push origin main` 將本機的更新直接推送至 GitHub 的遠端儲存庫，並設定 30 秒的網路超時防護，保證連線不通時伺服器不會無限期卡死。
 
+### 21. 遊戲結束頒獎典禮調整為顯示前 5 名
+- **解決問題**：原本遊戲結束的頒獎畫面（Podium）僅顯示前 3 名，管理者希望擴大顯示至前 5 名以鼓勵更多參與者。
+- **實作邏輯**：
+  - **後端端點調整 (`server.py`)**：在 `end_game` 函數中，將取得的排行名次切片範圍由原本的前 3 名 (`sorted_players[:3]`) 調整為前 5 名 (`sorted_players[:5]`)。
+  - **前端 HTML 排版 (`host.html`)**：在原本經典的 1-3 名頒獎台（`podium-container`）下方，新增了一個 `podium-runners-up` 區塊，用以呈現第 4 名與第 5 名的精緻橫幅卡片。
+  - **前端 CSS 美化 (`host.html`)**：為第 4、5 名設計了輕量、富有現代感且半透明的磨砂玻璃風格（Glassmorphism）卡片樣式 `.runner-up-card`，包含排名圓形徽章、暱稱與分數，並加上微懸停動畫效果，既保留了前三名領獎台的視覺焦點，又將四五名優雅地融入畫面中。同時微調了領獎台容器高度（由 `380px` 降至 `320px`）與上下邊距，確保 5 個名次與底部按鈕在主流投影解析度下能完美在同一頁呈現，絕不溢出。
+  - **前端 JS 資料填充 (`host.html`)**：修改 `showPodium(podium)` 函式，初始化時重置 4、5 名欄位，並迴圈判斷 `rank`。若存在第 4 或第 5 名資料，則動態填入暱稱、分數，並將卡片顯示出來。
+
 ---
 
 ## How to Test & Verify
@@ -272,4 +280,10 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
      ```
    - 前往您的 GitHub 儲存庫頁面，確認已自動新增一個 Commit，且 question_sets 下的 JSON 檔案內容已同步更新。
    - 若沒有做任何修改直接點擊「儲存」，伺服器 Log 會正確顯示 `[Git Auto-Push] No changes to commit. Skipping push.`，且不會產生新的 Commit。
+
+2. **Verify Top 5 Podium Feature**:
+   - 本機啟動伺服器，模擬至少 5 位玩家連線加入（可以使用多個隱私視窗或分頁模擬玩家）。
+   - 答題結束後，主持人點擊「結束遊戲」切換至頒獎典禮畫面。
+   - 驗證畫面中央原有的 1~3 名金銀銅領獎台維持正常顯示，且領獎台正下方成功出現第 4 名與第 5 名的排名卡片。
+   - 驗證名次、玩家暱稱、所得分數皆正確無誤。如果參與玩家少於 4 位，第 4 與第 5 名的區塊將會自動隱藏，維持視覺的整潔與美觀。
 

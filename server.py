@@ -476,7 +476,7 @@ class GameManager:
         )
         
         podium = []
-        for rank, (name, data) in enumerate(sorted_players[:3], 1):
+        for rank, (name, data) in enumerate(sorted_players[:5], 1):
             podium.append({
                 "rank": rank,
                 "nickname": name,

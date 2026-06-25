@@ -608,8 +608,8 @@
             display: flex;
             justify-content: center;
             align-items: flex-end;
-            height: 380px;
-            margin: 50px auto;
+            height: 320px;
+            margin: 20px auto;
             gap: 20px;
             max-width: 800px;
             width: 100%;
@@ -678,6 +678,73 @@
         .podium-rank-text {
             font-size: 64px;
             font-weight: 900;
+        }
+
+        .podium-runners-up {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin: 15px auto 30px auto;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .runner-up-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            min-width: 250px;
+            max-width: 280px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .runner-up-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .runner-rank {
+            font-size: 22px;
+            font-weight: 900;
+            color: #94a3b8;
+            background: rgba(255, 255, 255, 0.1);
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .runner-info {
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .runner-name {
+            font-size: 16px;
+            font-weight: 800;
+            color: var(--text-main);
+            word-break: break-all;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .runner-score {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-top: 2px;
         }
 
         /* SVG Shape Styles */
@@ -901,6 +968,26 @@
                     <div class="podium-pedestal">
                         <span class="podium-rank-text">3</span>
                         <span class="podium-score" id="podiumScore3">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Runners up (4th & 5th) -->
+            <div class="podium-runners-up" id="podiumRunnersUp" style="display: none;">
+                <!-- 4th Place -->
+                <div class="runner-up-card" id="runnerUp4" style="display: none;">
+                    <span class="runner-rank">4</span>
+                    <div class="runner-info">
+                        <span class="runner-name" id="runnerName4">-</span>
+                        <span class="runner-score" id="runnerScore4">-</span>
+                    </div>
+                </div>
+                <!-- 5th Place -->
+                <div class="runner-up-card" id="runnerUp5" style="display: none;">
+                    <span class="runner-rank">5</span>
+                    <div class="runner-info">
+                        <span class="runner-name" id="runnerName5">-</span>
+                        <span class="runner-score" id="runnerScore5">-</span>
                     </div>
                 </div>
             </div>
@@ -1455,6 +1542,17 @@
             document.getElementById('podiumName3').innerText = '-';
             document.getElementById('podiumScore3').innerText = '';
 
+            // Reset 4th and 5th places
+            document.getElementById('runnerName4').innerText = '-';
+            document.getElementById('runnerScore4').innerText = '';
+            document.getElementById('runnerUp4').style.display = 'none';
+            document.getElementById('runnerName5').innerText = '-';
+            document.getElementById('runnerScore5').innerText = '';
+            document.getElementById('runnerUp5').style.display = 'none';
+            document.getElementById('podiumRunnersUp').style.display = 'none';
+
+            let showRunnersUpSection = false;
+
             podium.forEach(p => {
                 if (p.rank === 1) {
                     document.getElementById('podiumName1').innerText = escapeHtml(p.nickname);
@@ -1465,8 +1563,22 @@
                 } else if (p.rank === 3) {
                     document.getElementById('podiumName3').innerText = escapeHtml(p.nickname);
                     document.getElementById('podiumScore3').innerText = `${p.score} 分`;
+                } else if (p.rank === 4) {
+                    document.getElementById('runnerName4').innerText = escapeHtml(p.nickname);
+                    document.getElementById('runnerScore4').innerText = `${p.score} 分`;
+                    document.getElementById('runnerUp4').style.display = 'flex';
+                    showRunnersUpSection = true;
+                } else if (p.rank === 5) {
+                    document.getElementById('runnerName5').innerText = escapeHtml(p.nickname);
+                    document.getElementById('runnerScore5').innerText = `${p.score} 分`;
+                    document.getElementById('runnerUp5').style.display = 'flex';
+                    showRunnersUpSection = true;
                 }
             });
+
+            if (showRunnersUpSection) {
+                document.getElementById('podiumRunnersUp').style.display = 'flex';
+            }
 
             showScreen('podium-screen');
         }
