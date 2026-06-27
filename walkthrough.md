@@ -285,6 +285,8 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
   - **前端防禦性 JS 設計**：
     - 在 `templates/host.html` 中將 `showQuestion`、`showRevealScreen` 與 `updateLeaderboard` 的核心業務程式碼全數包裹在 `try...catch` 中，並透過 `finally` 強制觸發 `showScreen` 換頁，避免單點崩潰導致整個 UI 流程鎖死。
     - 對所有存取 `currentQuestion` 的屬性（如 `currentQuestion.question` 等）加上安全鏈路保護（如 `currentQuestion && currentQuestion.question`），確保即使在極端數據缺失下，網頁也能優雅降級不崩潰。
+  - **行動玩家端連線重試還原**：
+    - 在 `server.py` 的 player 連線註冊部分，若 `game_state` 處於遊戲進行中，後端會自動根據玩家當前的答題狀態（是否已回答）與排名，向重連的玩家推送對應的狀態訊息（如 `question_start` 配合剩餘秒數、`answer_acknowledged` 避免卡在等待畫面、或 `reveal_player_result`、`leaderboard_player`、`game_finished` 等數據），實現全端自我修復重連，確保大群組遊玩時不受個別網絡抖動影響。
 
 ---
 

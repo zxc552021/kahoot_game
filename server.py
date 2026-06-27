@@ -949,18 +949,86 @@ async def websocket_endpoint(websocket: WebSocket):
             # Send current question info if game is active
             if game_manager.game_state == "QUESTION":
                 question = game_manager.get_current_question()
-                if question and not game_manager.players[client_name]["answered"]:
-                    time_elapsed = time.time() - game_manager.question_start_time
-                    seconds_left = max(0, int(question["time_limit"] - time_elapsed))
+                if question:
+                    if not game_manager.players[client_name]["answered"]:
+                        time_elapsed = time.time() - game_manager.question_start_time
+                        seconds_left = max(0, int(question["time_limit"] - time_elapsed))
+                        await websocket.send_json({
+                            "type": "question_start",
+                            "question_index": game_manager.current_question_index,
+                            "total_questions": len(game_manager.questions),
+                            "question": question["question"],
+                            "options": question["options"],
+                            "time_limit": seconds_left,
+                            "image_url": question.get("image_url")
+                        })
+                    else:
+                        await websocket.send_json({
+                            "type": "answer_acknowledged",
+                            "nickname": client_name
+                        })
+            elif game_manager.game_state == "REVEAL":
+                sorted_players = sorted(
+                    game_manager.players.items(),
+                    key=lambda x: x[1]["score"],
+                    reverse=True
+                )
+                player_rank = 1
+                for rank, (name, pdata) in enumerate(sorted_players, 1):
+                    if name == client_name:
+                        player_rank = rank
+                        break
+                pdata = game_manager.players[client_name]
+                question = game_manager.get_current_question()
+                if question:
                     await websocket.send_json({
-                        "type": "question_start",
-                        "question_index": game_manager.current_question_index,
-                        "total_questions": len(game_manager.questions),
-                        "question": question["question"],
-                        "options": question["options"],
-                        "time_limit": seconds_left,
-                        "image_url": question.get("image_url")
+                        "type": "reveal_player_result",
+                        "is_correct": pdata["is_correct"],
+                        "points_earned": pdata["points_earned"],
+                        "total_score": pdata["score"],
+                        "streak": pdata["streak"],
+                        "correct_index": question["correct_index"],
+                        "selected_index": pdata.get("selected_index", -1),
+                        "rank": player_rank,
+                        "total_players": len(game_manager.players)
                     })
+            elif game_manager.game_state == "LEADERBOARD":
+                sorted_players = sorted(
+                    game_manager.players.items(),
+                    key=lambda x: x[1]["score"],
+                    reverse=True
+                )
+                player_rank = 1
+                for rank, (name, pdata) in enumerate(sorted_players, 1):
+                    if name == client_name:
+                        player_rank = rank
+                        break
+                pdata = game_manager.players[client_name]
+                await websocket.send_json({
+                    "type": "leaderboard_player",
+                    "rank": player_rank,
+                    "total_players": len(game_manager.players),
+                    "score": pdata["score"],
+                    "streak": pdata["streak"]
+                })
+            elif game_manager.game_state == "FINISHED":
+                sorted_players = sorted(
+                    game_manager.players.items(),
+                    key=lambda x: x[1]["score"],
+                    reverse=True
+                )
+                player_rank = 1
+                for rank, (name, pdata) in enumerate(sorted_players, 1):
+                    if name == client_name:
+                        player_rank = rank
+                        break
+                pdata = game_manager.players[client_name]
+                await websocket.send_json({
+                    "type": "game_finished",
+                    "rank": player_rank,
+                    "total_players": len(game_manager.players),
+                    "score": pdata["score"]
+                })
             
             # Update lobby list
             await game_manager.send_lobby_update()
