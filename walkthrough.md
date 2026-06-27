@@ -275,8 +275,16 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
   - **動態視窗高度 (`dvh`)**：為 `body` 與主容器加入了 `height: 100dvh`（Dynamic Viewport Height），完美解決了 iOS Safari 及部分行動瀏覽器因為頂部/底部網址列動態收合，導致 `100vh` 實際溢出並遮擋底部按鈕的問題。
   - **流體排版與字型縮放**：大部分固定的 px 字型尺寸改為使用 CSS 變數配合 `clamp()` 與 `vw` 單位。這能確保在窄螢幕上字型自動變小，而在寬螢幕上字型會適度放大，絕對不會跑版。
   - **智慧內距與外框縮放**：利用 `clamp()` 設計彈性的內距 (Padding)、外邊距 (Margin) 與按鈕間距 (Gap)，在任何大小的螢幕上均能自動取得最完美的比例空間。
-  - **問題圖片高度比例化**：將問題圖片容器及圖片本身的最大高度限制為 `25vh`（佔螢幕高度 of 25%），這能保證在矮螢幕手機（如 iPhone SE）上，圖片會自動縮小，保留足夠的剩餘高度給四個答題選項按鈕，徹底防止題目圖片把按鈕擠出螢幕。
+  - **問題圖片高度比例化**：將問題圖片容器及圖片本身的最大高度限制為 `25vh`（佔螢幕高度 of 25%），這能保證在矮螢幕手機（如 iPhone SE）上，圖片會自動縮小，保留具體剩餘高度給四個答題選項按鈕，徹底防止題目圖片把按鈕擠出螢幕。
   - **極致窄屏 CSS 特殊優化 (@media)**：新增了針對高度小於 `600px` 螢幕的 `@media (max-height: 600px)` 媒體查詢規則，會自動將標頭、按鈕圓角、間距、計分卡及圖片高度進一步微型化，在任何極端尺寸下都好按、好看。
+
+### 23. 主持人端（Host）斷線重連與狀態同步優化 (Host Connection Reconnect and State Restoration)
+- **解決問題**：當伺服器因閒置重啟、代碼變更重載，或網路瞬斷時，主持人端 WebSocket 會自動重連。但在舊實作中，重連後的 `init` 訊息不會同步當前進行中的題目資訊，導致前端 `currentQuestion` 變數遺失變為 `null`。當收到公佈答案或排行榜的通知時，前端代碼在讀取 `currentQuestion` 屬性時便會拋出 `TypeError` 崩潰，造成主持人端網頁卡死，無法切換至下一題。
+- **實作邏輯**：
+  - **後端斷線自動還原**：重構 `server.py` 中 Host 註冊成功後的處理邏輯。若 `game_state` 處於遊戲進行中（`QUESTION`、`REVEAL`、`LEADERBOARD`、`FINISHED`），後端會自動抓取當前快照並向 Host 重新發送 `question_start`（包含折算後的剩餘作答時間）與統計資料，使 Host 在重連後能無縫還原數據。
+  - **前端防禦性 JS 設計**：
+    - 在 `templates/host.html` 中將 `showQuestion`、`showRevealScreen` 與 `updateLeaderboard` 的核心業務程式碼全數包裹在 `try...catch` 中，並透過 `finally` 強制觸發 `showScreen` 換頁，避免單點崩潰導致整個 UI 流程鎖死。
+    - 對所有存取 `currentQuestion` 的屬性（如 `currentQuestion.question` 等）加上安全鏈路保護（如 `currentQuestion && currentQuestion.question`），確保即使在極端數據缺失下，網頁也能優雅降級不崩潰。
 
 ---
 
@@ -305,4 +313,8 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
    - 使用 Chrome / Edge 的開發者工具（F12），開啟行動裝置模擬器，在不同的裝置預設檔間切換（例如 iPhone SE, iPhone XR, iPad Pro, Nest Hub）。
    - 檢查登入畫面、大廳畫面、答題畫面與結果畫面。
    - 特別在答題畫面中（包含長題目文字與題目圖片的情況下），縮小模擬器的視窗高度，驗證圖片與字體會自動等比例收縮，且 4 個不同顏色的選項按鈕會百分之百完整出現在畫面上，沒有任何滾動條或超出邊界。
+
+4. **Verify Host Reconnection Stability**:
+   - 在遊戲進行中（如處於答題或排行榜展示狀態時），手動重新整理（F5）主持人端網頁，或重啟本機伺服器。
+   - 驗證主持人網頁是否能自動重連並精準同步回剛才的答題或結算頁面，且按鈕點擊「下一題」等操作功能完全恢復，不再卡死。
 

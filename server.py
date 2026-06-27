@@ -786,6 +786,118 @@ async def websocket_endpoint(websocket: WebSocket):
             })
             # Send current lobby list if players exist
             await game_manager.send_lobby_update()
+
+            # Restore host state if the game is already in progress
+            if game_manager.game_state == "QUESTION":
+                question = game_manager.get_current_question()
+                if question:
+                    time_elapsed = time.time() - game_manager.question_start_time
+                    seconds_left = max(0, int(question["time_limit"] - time_elapsed))
+                    await game_manager.send_to_host({
+                        "type": "question_start",
+                        "question_index": game_manager.current_question_index,
+                        "total_questions": len(game_manager.questions),
+                        "question": question["question"],
+                        "options": question["options"],
+                        "correct_index": question["correct_index"],
+                        "time_limit": seconds_left,
+                        "image_url": question.get("image_url")
+                    })
+            elif game_manager.game_state == "REVEAL":
+                question = game_manager.get_current_question()
+                if question:
+                    # Calculate stats
+                    stats = [0, 0, 0, 0]
+                    for name, data in game_manager.players.items():
+                        if data["answered"]:
+                            sel_idx = data.get("selected_index", -1)
+                            if 0 <= sel_idx < 4:
+                                stats[sel_idx] += 1
+                                
+                    sorted_players = sorted(
+                        game_manager.players.items(),
+                        key=lambda x: x[1]["score"],
+                        reverse=True
+                    )
+                    leaderboard_data = []
+                    for rank, (name, data) in enumerate(sorted_players, 1):
+                        leaderboard_data.append({
+                            "rank": rank,
+                            "nickname": name,
+                            "score": data["score"],
+                            "streak": data["streak"],
+                            "connected": data["connected"]
+                        })
+                    
+                    # Pre-populate currentQuestion for host js
+                    await game_manager.send_to_host({
+                        "type": "question_start",
+                        "question_index": game_manager.current_question_index,
+                        "total_questions": len(game_manager.questions),
+                        "question": question["question"],
+                        "options": question["options"],
+                        "correct_index": question["correct_index"],
+                        "time_limit": 0,
+                        "image_url": question.get("image_url")
+                    })
+                    
+                    await game_manager.send_to_host({
+                        "type": "reveal_answers",
+                        "correct_index": question["correct_index"],
+                        "stats": stats,
+                        "leaderboard": leaderboard_data[:5]
+                    })
+            elif game_manager.game_state == "LEADERBOARD":
+                sorted_players = sorted(
+                    game_manager.players.items(),
+                    key=lambda x: x[1]["score"],
+                    reverse=True
+                )
+                leaderboard_data = []
+                for rank, (name, data) in enumerate(sorted_players, 1):
+                    leaderboard_data.append({
+                        "rank": rank,
+                        "nickname": name,
+                        "score": data["score"],
+                        "streak": data["streak"],
+                        "connected": data["connected"]
+                    })
+                
+                # Pre-populate currentQuestion for host js
+                question = game_manager.get_current_question()
+                if question:
+                    await game_manager.send_to_host({
+                        "type": "question_start",
+                        "question_index": game_manager.current_question_index,
+                        "total_questions": len(game_manager.questions),
+                        "question": question["question"],
+                        "options": question["options"],
+                        "correct_index": question["correct_index"],
+                        "time_limit": 0,
+                        "image_url": question.get("image_url")
+                    })
+                    
+                await game_manager.send_to_host({
+                    "type": "leaderboard",
+                    "leaderboard": leaderboard_data[:5]
+                })
+            elif game_manager.game_state == "FINISHED":
+                sorted_players = sorted(
+                    game_manager.players.items(),
+                    key=lambda x: x[1]["score"],
+                    reverse=True
+                )
+                podium = []
+                for rank, (name, data) in enumerate(sorted_players[:5], 1):
+                    podium.append({
+                        "rank": rank,
+                        "nickname": name,
+                        "score": data["score"]
+                    })
+                await game_manager.send_to_host({
+                    "type": "podium",
+                    "podium": podium
+                })
             
         elif client_role == "player":
             client_name = reg_data.get("nickname", "").strip()

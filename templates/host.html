@@ -1298,35 +1298,58 @@
         // Game Play Actions
         let currentQuestion = null;
         function showQuestion(data) {
-            currentQuestion = data;
-            synth.stopBgm();
-            synth.startBgm('game');
+            try {
+                currentQuestion = data;
+                try {
+                    synth.stopBgm();
+                    synth.startBgm('game');
+                } catch (audioErr) {
+                    console.warn("Audio start/stop failed:", audioErr);
+                }
 
-            // Reset UI
-            document.getElementById('questionProgress').innerText = `第 ${data.question_index + 1} 題，共 ${data.total_questions} 題`;
-            document.getElementById('questionTitle').innerText = data.question || "請看以下圖片回答：";
-            document.getElementById('timerCircle').innerText = data.time_limit;
-            document.getElementById('answerCount').innerText = '0';
-            
-            // Dynamic image rendering
-            const imgEl = document.getElementById('questionImage');
-            const placeholderEl = document.getElementById('questionPlaceholder');
-            if (data.image_url) {
-                imgEl.src = data.image_url;
-                imgEl.style.display = 'block';
-                placeholderEl.style.display = 'none';
-            } else {
-                imgEl.src = '';
-                imgEl.style.display = 'none';
-                placeholderEl.style.display = 'flex';
+                // Reset UI
+                const progressEl = document.getElementById('questionProgress');
+                if (progressEl) progressEl.innerText = `第 ${data.question_index + 1} 題，共 ${data.total_questions} 題`;
+                
+                const titleEl = document.getElementById('questionTitle');
+                if (titleEl) titleEl.innerText = data.question || "請看以下圖片回答：";
+                
+                const timerEl = document.getElementById('timerCircle');
+                if (timerEl) {
+                    timerEl.innerText = data.time_limit;
+                    timerEl.style.borderColor = 'var(--primary)';
+                    timerEl.style.boxShadow = '0 0 25px var(--primary-glow)';
+                }
+                
+                const countEl = document.getElementById('answerCount');
+                if (countEl) countEl.innerText = '0';
+                
+                // Dynamic image rendering
+                const imgEl = document.getElementById('questionImage');
+                const placeholderEl = document.getElementById('questionPlaceholder');
+                if (imgEl && placeholderEl) {
+                    if (data.image_url) {
+                        imgEl.src = data.image_url;
+                        imgEl.style.display = 'block';
+                        placeholderEl.style.display = 'none';
+                    } else {
+                        imgEl.src = '';
+                        imgEl.style.display = 'none';
+                        placeholderEl.style.display = 'flex';
+                    }
+                }
+
+                for (let i = 0; i < 4; i++) {
+                    const optTextEl = document.getElementById(`optText${i}`);
+                    if (optTextEl) {
+                        optTextEl.innerText = (data.options && data.options[i] !== undefined) ? data.options[i] : `選項 ${i+1}`;
+                    }
+                }
+            } catch (err) {
+                console.error("Error in showQuestion:", err);
+            } finally {
+                showScreen('question-screen');
             }
-
-            document.getElementById('optText0').innerText = data.options[0];
-            document.getElementById('optText1').innerText = data.options[1];
-            document.getElementById('optText2').innerText = data.options[2];
-            document.getElementById('optText3').innerText = data.options[3];
-            
-            showScreen('question-screen');
         }
 
         function updateTimer(secondsLeft) {
@@ -1349,76 +1372,96 @@
 
         // Reveal Answers Action
         function showRevealScreen(data) {
-            synth.stopBgm();
-            synth.playChime(600, 'triangle', 0.4);
-
-            document.getElementById('revealProgress').innerText = document.getElementById('questionProgress').innerText;
-            document.getElementById('revealTitle').innerText = currentQuestion.question || "公佈答案";
-            
-            // Populate reveal leaderboard
-            const revealLeaderboard = document.getElementById('revealLeaderboard');
-            if (revealLeaderboard) {
-                revealLeaderboard.innerHTML = '';
-                const leaderboard = data.leaderboard || [];
-                leaderboard.forEach((player, index) => {
-                    const row = document.createElement('div');
-                    let medalClass = '';
-                    if (player.rank === 1) medalClass = 'gold';
-                    else if (player.rank === 2) medalClass = 'silver';
-                    else if (player.rank === 3) medalClass = 'bronze';
-                    
-                    row.className = `reveal-leaderboard-row ${medalClass}`;
-                    row.style.animationDelay = `${index * 100}ms`;
-                    
-                    const streakHtml = player.streak > 1 
-                        ? `<span class="reveal-streak">🔥 ${player.streak}</span>` 
-                        : '';
-                    
-                    row.innerHTML = `
-                        <div style="display: flex; align-items: center; gap: 15px;">
-                            <span class="reveal-rank">${player.rank}</span>
-                            <span class="reveal-name">${escapeHtml(player.nickname)} ${!player.connected ? '<span style="font-size:12px;color:var(--text-muted);">(離線)</span>':''}</span>
-                            ${streakHtml}
-                        </div>
-                        <span class="reveal-score">${player.score}</span>
-                    `;
-                    revealLeaderboard.appendChild(row);
-                });
+            try {
+                synth.stopBgm();
+                synth.playChime(600, 'triangle', 0.4);
+            } catch (audioErr) {
+                console.warn("Audio chime failed:", audioErr);
             }
 
-            for (let i = 0; i < 4; i++) {
-                document.getElementById(`revealOptText${i}`).innerText = currentQuestion.options[i];
+            try {
+                const progressEl = document.getElementById('revealProgress');
+                if (progressEl) {
+                    const qProgressEl = document.getElementById('questionProgress');
+                    progressEl.innerText = qProgressEl ? qProgressEl.innerText : "第 0 題";
+                }
                 
-                const card = document.getElementById(`revealOptCard${i}`);
-                card.className = `opt-card ${getOptColorClass(i)}`;
-                
-                if (i === data.correct_index) {
-                    card.classList.add('correct-answer-card');
-                } else {
-                    card.classList.add('dimmed');
+                const titleEl = document.getElementById('revealTitle');
+                if (titleEl) {
+                    titleEl.innerText = (currentQuestion && currentQuestion.question) || "公佈答案";
                 }
 
-                // Update answer counts (stats)
-                const countEl = document.getElementById(`revealOptCount${i}`);
-                if (countEl) {
-                    const countVal = (data.stats && data.stats[i] !== undefined) ? data.stats[i] : 0;
-                    countEl.innerText = `${countVal}人`;
+                // Populate reveal leaderboard
+                const revealLeaderboard = document.getElementById('revealLeaderboard');
+                if (revealLeaderboard) {
+                    revealLeaderboard.innerHTML = '';
+                    const leaderboard = data.leaderboard || [];
+                    leaderboard.forEach((player, index) => {
+                        const row = document.createElement('div');
+                        let medalClass = '';
+                        if (player.rank === 1) medalClass = 'gold';
+                        else if (player.rank === 2) medalClass = 'silver';
+                        else if (player.rank === 3) medalClass = 'bronze';
+                        
+                        row.className = `reveal-leaderboard-row ${medalClass}`;
+                        row.style.animationDelay = `${index * 100}ms`;
+                        
+                        const streakHtml = player.streak > 1 
+                            ? `<span class="reveal-streak">🔥 ${player.streak}</span>` 
+                            : '';
+                        
+                        row.innerHTML = `
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <span class="reveal-rank">${player.rank}</span>
+                                <span class="reveal-name">${escapeHtml(player.nickname)} ${!player.connected ? '<span style="font-size:12px;color:var(--text-muted);">(離線)</span>':''}</span>
+                                ${streakHtml}
+                            </div>
+                            <span class="reveal-score">${player.score}</span>
+                        `;
+                        revealLeaderboard.appendChild(row);
+                    });
                 }
-            }
 
-            // Update bottom next button
-            const revealNextBtn = document.getElementById('revealNextBtn');
-            if (revealNextBtn) {
-                if (currentQuestion.question_index + 1 >= currentQuestion.total_questions) {
-                    revealNextBtn.innerText = '結束遊戲，查看頒獎';
-                    revealNextBtn.onclick = () => ws.send(JSON.stringify({ type: 'end_game' }));
-                } else {
-                    revealNextBtn.innerText = '下一題';
-                    revealNextBtn.onclick = () => nextQuestion();
+                for (let i = 0; i < 4; i++) {
+                    const textEl = document.getElementById(`revealOptText${i}`);
+                    if (textEl) {
+                        textEl.innerText = (currentQuestion && currentQuestion.options) ? currentQuestion.options[i] : `選項 ${i+1}`;
+                    }
+                    
+                    const card = document.getElementById(`revealOptCard${i}`);
+                    if (card) {
+                        card.className = `opt-card ${getOptColorClass(i)}`;
+                        if (i === data.correct_index) {
+                            card.classList.add('correct-answer-card');
+                        } else {
+                            card.classList.add('dimmed');
+                        }
+                    }
+
+                    // Update answer counts (stats)
+                    const countEl = document.getElementById(`revealOptCount${i}`);
+                    if (countEl) {
+                        const countVal = (data.stats && data.stats[i] !== undefined) ? data.stats[i] : 0;
+                        countEl.innerText = `${countVal}人`;
+                    }
                 }
+
+                // Update bottom next button
+                const revealNextBtn = document.getElementById('revealNextBtn');
+                if (revealNextBtn) {
+                    if (currentQuestion && currentQuestion.question_index + 1 >= currentQuestion.total_questions) {
+                        revealNextBtn.innerText = '結束遊戲，查看頒獎';
+                        revealNextBtn.onclick = () => ws.send(JSON.stringify({ type: 'end_game' }));
+                    } else {
+                        revealNextBtn.innerText = '下一題';
+                        revealNextBtn.onclick = () => nextQuestion();
+                    }
+                }
+            } catch (err) {
+                console.error("Error in showRevealScreen:", err);
+            } finally {
+                showScreen('reveal-screen');
             }
-            
-            showScreen('reveal-screen');
         }
 
         function getOptColorClass(idx) {
@@ -1434,42 +1477,55 @@
         }
 
         function updateLeaderboard(leaderboard) {
-            synth.playLeaderboardSound();
-            const container = document.getElementById('leaderboardList');
-            container.innerHTML = '';
-
-            leaderboard.forEach((player, index) => {
-                const row = document.createElement('div');
-                row.className = 'leaderboard-row';
-                row.style.animationDelay = `${index * 150}ms`;
-                
-                const streakHtml = player.streak > 1 
-                    ? `<span class="streak-badge">🔥 ${player.streak} 連勝</span>` 
-                    : '';
-                
-                row.innerHTML = `
-                    <div class="leaderboard-left">
-                        <span class="rank-num">${player.rank}</span>
-                        <span class="player-name">${escapeHtml(player.nickname)} ${!player.connected ? '<span style="font-size:12px;color:var(--text-muted);">(離線)</span>':''}</span>
-                    </div>
-                    <div class="leaderboard-right">
-                        ${streakHtml}
-                        <span class="player-score">${player.score}</span>
-                    </div>
-                `;
-                container.appendChild(row);
-            });
-
-            const nextBtn = document.getElementById('leaderboardNextBtn');
-            if (currentQuestion.question_index + 1 >= currentQuestion.total_questions) {
-                nextBtn.innerText = '結束遊戲，查看頒獎';
-                nextBtn.onclick = () => ws.send(JSON.stringify({ type: 'end_game' }));
-            } else {
-                nextBtn.innerText = '下一題';
-                nextBtn.onclick = () => nextQuestion();
+            try {
+                synth.playLeaderboardSound();
+            } catch (audioErr) {
+                console.warn("Audio leaderboard sound failed:", audioErr);
             }
 
-            showScreen('leaderboard-screen');
+            try {
+                const container = document.getElementById('leaderboardList');
+                if (container) {
+                    container.innerHTML = '';
+
+                    leaderboard.forEach((player, index) => {
+                        const row = document.createElement('div');
+                        row.className = 'leaderboard-row';
+                        row.style.animationDelay = `${index * 150}ms`;
+                        
+                        const streakHtml = player.streak > 1 
+                            ? `<span class="streak-badge">🔥 ${player.streak} 連勝</span>` 
+                            : '';
+                        
+                        row.innerHTML = `
+                            <div class="leaderboard-left">
+                                <span class="rank-num">${player.rank}</span>
+                                <span class="player-name">${escapeHtml(player.nickname)} ${!player.connected ? '<span style="font-size:12px;color:var(--text-muted);">(離線)</span>':''}</span>
+                            </div>
+                            <div class="leaderboard-right">
+                                ${streakHtml}
+                                <span class="player-score">${player.score}</span>
+                            </div>
+                        `;
+                        container.appendChild(row);
+                    });
+                }
+
+                const nextBtn = document.getElementById('leaderboardNextBtn');
+                if (nextBtn) {
+                    if (currentQuestion && currentQuestion.question_index + 1 >= currentQuestion.total_questions) {
+                        nextBtn.innerText = '結束遊戲，查看頒獎';
+                        nextBtn.onclick = () => ws.send(JSON.stringify({ type: 'end_game' }));
+                    } else {
+                        nextBtn.innerText = '下一題';
+                        nextBtn.onclick = () => nextQuestion();
+                    }
+                }
+            } catch (err) {
+                console.error("Error in updateLeaderboard:", err);
+            } finally {
+                showScreen('leaderboard-screen');
+            }
         }
 
         function nextQuestion() {
