@@ -46,5 +46,17 @@
     "correct_index": 0,
     "time_limit": 15,
     "image_url": "/static/uploads/2dff0f50-59cc-4311-8455-7e40a7c1d8a4.png"
+  },
+  {
+    "question": "每日最低水分攝取量公式?",
+    "options": [
+      "自己的體重乘上20cc",
+      "自己的體重乘上30cc",
+      "自己的身高乘上10cc",
+      "自己的身高乘上40cc"
+    ],
+    "correct_index": 1,
+    "time_limit": 15,
+    "image_url": "/static/uploads/7a593262-b929-4667-a8ff-25a55992449b.png"
   }
 ]
