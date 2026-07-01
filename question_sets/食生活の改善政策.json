@@ -1,1 +1,62 @@
-[]
+[
+  {
+    "question": "衛福部建議每日膳食纖維攝取量為?",
+    "options": [
+      "15g-25g",
+      "25g-35g",
+      "45g-55g",
+      "55g-65g"
+    ],
+    "correct_index": 1,
+    "time_limit": 15,
+    "image_url": null
+  },
+  {
+    "question": "哪個不是代謝症候群的五大指標?",
+    "options": [
+      "高密度膽固醇過低",
+      "低密度膽固醇過低",
+      "三酸甘油酯上升",
+      "空腹血糖值上升"
+    ],
+    "correct_index": 1,
+    "time_limit": 15,
+    "image_url": null
+  },
+  {
+    "question": "哪個不是改善代謝症候群的方法?",
+    "options": [
+      "正確飲食",
+      "規律運動",
+      "壓力管理",
+      "不要上班"
+    ],
+    "correct_index": 3,
+    "time_limit": 15,
+    "image_url": null
+  },
+  {
+    "question": "下列哪項不能改善胃食道逆流?",
+    "options": [
+      "少量多餐",
+      "飯後平躺",
+      "體重管理",
+      "壁免高脂食物"
+    ],
+    "correct_index": 1,
+    "time_limit": 15,
+    "image_url": null
+  },
+  {
+    "question": "211餐盤的正確組合",
+    "options": [
+      "蔬菜2+澱粉1+蛋白質1",
+      "澱粉2+蔬菜1+蛋白質1",
+      "蛋白質2+蔬菜1+澱粉1",
+      "吃到飽就對了!"
+    ],
+    "correct_index": 0,
+    "time_limit": 15,
+    "image_url": null
+  }
+]
