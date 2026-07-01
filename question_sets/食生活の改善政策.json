@@ -9,7 +9,7 @@
     ],
     "correct_index": 1,
     "time_limit": 15,
-    "image_url": null
+    "image_url": "/static/uploads/a70c29a8-7c05-4084-95d5-691aeda1771d.png"
   },
   {
     "question": "哪個不是代謝症候群的五大指標?",
@@ -21,7 +21,7 @@
     ],
     "correct_index": 1,
     "time_limit": 15,
-    "image_url": null
+    "image_url": "/static/uploads/521353ac-b55f-4966-9a2e-7f03286fd478.png"
   },
   {
     "question": "哪個不是改善代謝症候群的方法?",
@@ -33,7 +33,7 @@
     ],
     "correct_index": 3,
     "time_limit": 15,
-    "image_url": null
+    "image_url": "/static/uploads/6ed73d4e-2835-4ab2-aba3-2ce5b140b3d6.png"
   },
   {
     "question": "下列哪項不能改善胃食道逆流?",
@@ -45,7 +45,7 @@
     ],
     "correct_index": 1,
     "time_limit": 15,
-    "image_url": null
+    "image_url": "/static/uploads/7e73b417-0e36-4f3a-831d-b98eb3c66916.png"
   },
   {
     "question": "211餐盤的正確組合",
@@ -57,6 +57,6 @@
     ],
     "correct_index": 0,
     "time_limit": 15,
-    "image_url": null
+    "image_url": "/static/uploads/b2bc55c8-27b9-4a91-bb34-c03438f925f2.png"
   }
 ]
