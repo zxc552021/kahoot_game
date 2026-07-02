@@ -309,6 +309,13 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
   - **響應式字型變數重調**：在 `templates/player.html` 的 CSS 根變數中，將選項文字大小（`--font-ctext`）從 `clamp(13px, 4vw, 18px)` 調升至 `clamp(16px, 5vw, 26px)`，確保最小字型為大於 16px 的超清晰尺寸，並在主流手機寬度下自動調整至大約 19px 的完美比例。
   - **形狀符號同步調整**：將形狀符號字型大小（`--font-shape`）同步調升至 `clamp(22px, 6.5vw, 32px)`，讓字母（A, B, C, D）及圖形與放大後的選項文字維持絕佳的視覺平衡。
 
+### 27. 預設答題時間調整為 30 秒 (Default Question Answering Time Adjustment)
+- **解決問題**：主辦單位希望給予玩家更多思索與作答時間，因此需要將每道題目的預設作答限制時間從原本的 15/20 秒全面改為 30 秒。
+- **實作邏輯**：
+  - **題庫 JSON 全面升級**：執行腳本掃描 `question_sets/` 下的所有 JSON 檔案，將所有現有題目的 `time_limit` 欄位值一鍵更新為 `30`。
+  - **編輯器預設值調整**：修改 `templates/creator.html` 的 `addNewQuestion()` 函式，使以後新增的每道題目預設時間為 `30` 秒；同時在編輯器 HTML 渲染中將時間未設定時的備用預設值設為 `30` 秒。
+  - **大螢幕倒數介面調整**：修改 `templates/host.html` 中 `timerCircle` 的初始佔位文字，從 `20` 改為 `30`，確保大螢幕載入題目瞬間與計時器顯示完全一致。
+
 ---
 
 ## How to Test & Verify

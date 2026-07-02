@@ -613,7 +613,7 @@
                     <div class="meta-row">
                         <div class="input-group">
                             <label>答題時間限制 (秒)</label>
-                            <input type="number" class="form-control" min="5" max="120" value="${q.time_limit || 20}" oninput="updateTimeLimit(${qIndex}, this.value)">
+                            <input type="number" class="form-control" min="5" max="120" value="${q.time_limit || 30}" oninput="updateTimeLimit(${qIndex}, this.value)">
                         </div>
                     </div>
                 `;
@@ -699,7 +699,7 @@
                 question: "",
                 options: ["選項一", "選項二", "選項三", "選項四"],
                 correct_index: 0,
-                time_limit: 15,
+                time_limit: 30,
                 image_url: null
             });
             renderQuestions();
