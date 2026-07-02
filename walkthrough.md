@@ -297,6 +297,12 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
   - **安全存檔改名鏈**：儲存時前端偵測若名稱有變更，會先調用新名稱的 POST API 儲存新組別檔案（可偵測並提示重複覆蓋確認），成功寫入後再自動發送 DELETE API 刪除舊組別檔案，完美在後端達成「原地重新命名」的無縫效果，並自動更新頂部下拉式選單。
   - **按鈕下移優化編輯流**：將「＋ 新增題目」按鈕下移至題目列表的最後方（即最後一題的正下方），並重新設計為質感置中大按鈕，貼合使用者的連續編輯心理流線。
 
+### 25. 遊戲結束玩家端顯示暱稱優化 (Player End Screen: Nickname Display)
+- **解決問題**：遊戲結束後，玩家手機端結算畫面只顯示排名與分數，缺少個人姓名識別，容易混淆。
+- **實作邏輯**：
+  - **新增名稱標籤**：在 `templates/player.html` 的 `#finished-screen` 畫面中央新增個人姓名元件（`#finalNickname`），並以顯目的專案主題顏色呈現。
+  - **數據自動載入**：在觸發 `showGameFinished` 時，將瀏覽器中玩家的全域變數 `myNickname` 寫入 `#finalNickname` 標籤中，在結束畫面精確地個人化呈現。
+
 ---
 
 ## How to Test & Verify

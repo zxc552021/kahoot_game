@@ -520,6 +520,7 @@
             <p style="color: var(--text-muted); font-size: clamp(12px, 3.5vw, 14px); margin-bottom: clamp(10px, 2vh, 20px);">感謝您的參與</p>
             
             <div class="waiting-box">
+                <p style="font-size: clamp(16px, 4.5vw, 20px); font-weight: 800; color: var(--primary); margin-bottom: clamp(8px, 1.5vh, 15px);" id="finalNickname">-</p>
                 <p style="font-size: clamp(13px, 4vw, 16px); color: var(--text-muted);">您的最終排名</p>
                 <div class="rank-badge" id="finalRank" style="margin: clamp(5px, 1vh, 10px) 0; font-size: clamp(38px, 10vw, 54px);">第 - 名</div>
                 <p style="font-size: clamp(16px, 4.5vw, 20px); font-weight: 800; color: #10b981;" id="finalScore">總得分: 0 分</p>
@@ -1161,6 +1162,10 @@
         }
 
         function showGameFinished(data) {
+            const nicknameEl = document.getElementById('finalNickname');
+            if (nicknameEl) {
+                nicknameEl.innerText = myNickname || "玩家";
+            }
             document.getElementById('finalRank').innerText = `第 ${data.rank} 名`;
             document.getElementById('finalScore').innerText = `總得分: ${data.score} 分`;
             
