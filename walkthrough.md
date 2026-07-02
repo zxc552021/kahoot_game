@@ -316,6 +316,12 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
   - **編輯器預設值調整**：修改 `templates/creator.html` 的 `addNewQuestion()` 函式，使以後新增的每道題目預設時間為 `30` 秒；同時在編輯器 HTML 渲染中將時間未設定時的備用預設值設為 `30` 秒。
   - **大螢幕倒數介面調整**：修改 `templates/host.html` 中 `timerCircle` 的初始佔位文字，從 `20` 改為 `30`，確保大螢幕載入題目瞬間與計時器顯示完全一致。
 
+### 28. 放棄變更（還原）功能完整修復 (Discard Changes Full Rollback Fix)
+- **解決問題**：當使用者在題目編輯器修改了題目內容或更改了組別標題，點擊底部的「放棄變更」按鈕時，並不能完整還原未儲存的內容（特別是標題更名與下拉選單的同步狀態）。
+- **實作邏輯**：
+  - **引進確認機制與全局重載**：修改 `templates/creator.html`，將單純重新載入題目的 `fetchQuestionsForSet(currentSetName)` 改為自訂的 `discardChanges()` 異步函式。它會首先跳出彈窗確認「您有未儲存的變更，確定要放棄並還原嗎？」。
+  - **資料流重置鏈**：確認還原後，改為調用 `loadQuestionSets()`。此方法不僅能重新從伺服器取得最原始未修改的 JSON 題庫（自動覆蓋記憶體中的變更），更會重新刷新頂部下拉式選單與組別名稱，並徹底將輸入框重置為原本的組別名字，達到完整、還原效果。
+
 ---
 
 ## How to Test & Verify

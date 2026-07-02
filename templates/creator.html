@@ -438,7 +438,7 @@
     <div class="floating-footer">
         <span style="color: var(--text-muted); font-size: 14px;" id="questionCountText">共 0 個題目</span>
         <div style="display: flex; gap: 15px;">
-            <button class="btn btn-secondary" onclick="fetchQuestionsForSet(currentSetName)">放棄變更</button>
+            <button class="btn btn-secondary" onclick="discardChanges()">放棄變更</button>
             <button class="btn btn-success" onclick="saveQuestionsToServer()">儲存題目設定</button>
         </div>
     </div>
@@ -794,6 +794,13 @@
             } catch (error) {
                 console.error(error);
                 showToast('連線失敗，無法儲存。', true);
+            }
+        }
+
+        async function discardChanges() {
+            if (confirm("您有未儲存的變更，確定要放棄並還原嗎？")) {
+                await loadQuestionSets();
+                showToast("變更已還原", false);
             }
         }
 
