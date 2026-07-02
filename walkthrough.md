@@ -303,6 +303,12 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
   - **新增名稱標籤**：在 `templates/player.html` 的 `#finished-screen` 畫面中央新增個人姓名元件（`#finalNickname`），並以顯目的專案主題顏色呈現。
   - **數據自動載入**：在觸發 `showGameFinished` 時，將瀏覽器中玩家的全域變數 `myNickname` 寫入 `#finalNickname` 標籤中，在結束畫面精確地個人化呈現。
 
+### 26. 行動玩家端選項字體大小自適應優化 (Player Choice Font Scaling)
+- **解決問題**：玩家在手機端作答時，A~D 答案選項的文字與形狀圖示在小螢幕上顯得太小，降低了閱讀與作答體驗。
+- **實作邏輯**：
+  - **響應式字型變數重調**：在 `templates/player.html` 的 CSS 根變數中，將選項文字大小（`--font-ctext`）從 `clamp(13px, 4vw, 18px)` 調升至 `clamp(16px, 5vw, 26px)`，確保最小字型為大於 16px 的超清晰尺寸，並在主流手機寬度下自動調整至大約 19px 的完美比例。
+  - **形狀符號同步調整**：將形狀符號字型大小（`--font-shape`）同步調升至 `clamp(22px, 6.5vw, 32px)`，讓字母（A, B, C, D）及圖形與放大後的選項文字維持絕佳的視覺平衡。
+
 ---
 
 ## How to Test & Verify
