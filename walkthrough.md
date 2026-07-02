@@ -286,7 +286,16 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
     - 在 `templates/host.html` 中將 `showQuestion`、`showRevealScreen` 與 `updateLeaderboard` 的核心業務程式碼全數包裹在 `try...catch` 中，並透過 `finally` 強制觸發 `showScreen` 換頁，避免單點崩潰導致整個 UI 流程鎖死。
     - 對所有存取 `currentQuestion` 的屬性（如 `currentQuestion.question` 等）加上安全鏈路保護（如 `currentQuestion && currentQuestion.question`），確保即使在極端數據缺失下，網頁也能優雅降級不崩潰。
   - **行動玩家端連線重試還原**：
-    - 在 `server.py` 的 player 連線註冊部分，若 `game_state` 處於遊戲進行中，後端會自動根據玩家當前的答題狀態（是否已回答）與排名，向重連的玩家推送對應的狀態訊息（如 `question_start` 配合剩餘秒數、`answer_acknowledged` 避免卡在等待畫面、或 `reveal_player_result`、`leaderboard_player`、`game_finished` 等數據），實現全端自我修復重連，確保大群組遊玩時不受個別網絡抖動影響。
+    - 在 `server.py` 的 player 連線註冊部分，若 `game_state` 處於遊戲進行中，後端會自動根據玩家當前的答題狀態（是否已回答）與排名，向重連的玩家推送對應的狀態訊息（如 `question_start` 配合剩餘秒數、`answer_acknowledged` 避免卡在等待畫面、或 `reveal_player_result` , `leaderboard_player` , `game_finished` 等數據），實現全端自我修復重連，確保大群組遊玩時不受個別網絡抖動影響。
+
+### 24. 題目編輯器組別易用性改進與直接改名功能 (Creator UX Improvements: Inline Renaming & Add Question Relocation)
+- **解決問題**：
+  1. 編輯器原本的標題為固定的靜態文字，無法直觀顯示當前編輯組別，且不支援直接改名，若想為題庫重命名需手動導出、修改 JSON 檔名再重新匯入，操作十分繁雜。
+  2. 原本的「＋ 新增題目」按鈕固定於網頁最右上角，當題庫數量較多時，使用者拉到最下方編輯完後需捲動回最上方才能新增下一題，影響編輯體驗。
+- **實作邏輯**：
+  - **標題整合改名輸入框**：將原本的 `<h1>編輯遊戲題目</h1>` 取代為與現有 UI 風格一致的透明無框輸入框，自動加載並同步當前組別名稱。搭配鉛筆編輯圖標，支援原地聚焦修改。
+  - **安全存檔改名鏈**：儲存時前端偵測若名稱有變更，會先調用新名稱的 POST API 儲存新組別檔案（可偵測並提示重複覆蓋確認），成功寫入後再自動發送 DELETE API 刪除舊組別檔案，完美在後端達成「原地重新命名」的無縫效果，並自動更新頂部下拉式選單。
+  - **按鈕下移優化編輯流**：將「＋ 新增題目」按鈕下移至題目列表的最後方（即最後一題的正下方），並重新設計為質感置中大按鈕，貼合使用者的連續編輯心理流線。
 
 ---
 
