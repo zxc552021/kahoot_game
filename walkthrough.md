@@ -322,6 +322,11 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
   - **引進確認機制與全局重載**：修改 `templates/creator.html`，將單純重新載入題目的 `fetchQuestionsForSet(currentSetName)` 改為自訂的 `discardChanges()` 異步函式。它會首先跳出彈窗確認「您有未儲存的變更，確定要放棄並還原嗎？」。
   - **資料流重置鏈**：確認還原後，改為調用 `loadQuestionSets()`。此方法不僅能重新從伺服器取得最原始未修改的 JSON 題庫（自動覆蓋記憶體中的變更），更會重新刷新頂部下拉式選單與組別名稱，並徹底將輸入框重置為原本的組別名字，達到完整、還原效果。
 
+### 29. 儲存題庫維持當前編輯組別頁籤 (Preserve Selected Set in Editor After Saving)
+- **解決問題**：當使用者在題目編輯器修改並儲存了某個非預設的題庫組別後，編輯器會自動跳轉回到伺服器當前運行的「預設題目」，迫使使用者每次儲存後都需要手動切換回原本正在編輯的組別，十分繁瑣。
+- **實作邏輯**：
+  - **自訂狀態保存參數**：修改 `loadQuestionSets(preserveSetName = null)` 使其支援傳入選填參數。當點擊「儲存題目設定」並成功後，傳入剛剛儲存的組別名字 `newSetName`；此時 UI 刷新時會維持選中該組別，而不去載入伺服器上的當前運行組別，使編輯狀態完美保留。
+
 ---
 
 ## How to Test & Verify

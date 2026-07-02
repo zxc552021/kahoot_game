@@ -449,12 +449,16 @@
         let questions = [];
         let currentSetName = "";
 
-        async function loadQuestionSets() {
+        async function loadQuestionSets(preserveSetName = null) {
             try {
                 const response = await fetch('/api/question_sets');
                 if (response.ok) {
                     const data = await response.json();
-                    currentSetName = data.current_set;
+                    if (preserveSetName) {
+                        currentSetName = preserveSetName;
+                    } else {
+                        currentSetName = data.current_set;
+                    }
                     
                     const setSelect = document.getElementById('setSelect');
                     setSelect.innerHTML = '';
@@ -785,8 +789,7 @@
                     }
 
                     showToast('題目儲存成功！', false);
-                    currentSetName = newSetName;
-                    await loadQuestionSets();
+                    await loadQuestionSets(newSetName);
                 } else {
                     const err = await response.json();
                     showToast('儲存失敗：' + (err.detail || response.statusText), true);
