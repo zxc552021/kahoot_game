@@ -526,15 +526,13 @@ class GameManager:
         
         if answer_index == correct_index:
             data["is_correct"] = True
-            # Scoring algorithm: Max 1000 points. Decays linearly.
+            # Scoring algorithm: Max 100 points. Decays linearly.
             speed_ratio = min(time_taken / time_limit, 1.0)
-            base_points = 1000
+            base_points = 100
             points = int(base_points * (1.0 - speed_ratio * 0.5))
             
-            # Streak bonus
+            # Streak count is tracked, but no points bonus is added (to ensure max 100 points per question)
             data["streak"] += 1
-            streak_bonus = min((data["streak"] - 1) * 100, 500)
-            points += streak_bonus
             
             data["points_earned"] = points
             data["score"] += points

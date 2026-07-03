@@ -327,6 +327,12 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
 - **實作邏輯**：
   - **自訂狀態保存參數**：修改 `loadQuestionSets(preserveSetName = null)` 使其支援傳入選填參數。當點擊「儲存題目設定」並成功後，傳入剛剛儲存的組別名字 `newSetName`；此時 UI 刷新時會維持選中該組別，而不去載入伺服器上的當前運行組別，使編輯狀態完美保留。
 
+### 30. 計分規則修復與每題最高分調整為 100 分 (Scoring System Fix & Max Points Adjustment to 100)
+- **解決問題**：使用者發現手機端的分數之前並未充分凸顯答題快慢的權重差，且由於「連勝加分（Streak Bonus）」的存在，會出現回答較慢的玩家因為連勝次數多而使得單題得分超過回答較快的人。另外，需要將每題的最高分限制在 100 分。
+- **實作邏輯**：
+  - **最大分數重置與連勝加分移除**：在 `server.py` 中，將 `base_points` 從 1000 降至 100。同時完全移除 `streak_bonus`（連勝加分累計機制），但保留連勝次數（`streak`）的純數字追蹤用於畫面視覺顯示，以確保任何題目單題的最高得分均嚴格受限於 100 分。
+  - **速度權重線性衰減**：沿用並優化 Kahoot 標準的線性衰減公式 `points = int(base_points * (1.0 - speed_ratio * 0.5))`。答題正確且極速（接近 0 秒）的玩家可以拿到最高 100 分；隨著作答耗時拉長，分數線性遞減，直到答題時限（30 秒）的臨界點答對依然可以獲得保障底分 50 分。這完美保證了「答得越快、正確且分數越高，且依序遞減」的競爭樂趣。
+
 ---
 
 ## How to Test & Verify
