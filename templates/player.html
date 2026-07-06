@@ -215,9 +215,9 @@
         .choices-grid {
             display: flex;
             flex-direction: column;
-            gap: clamp(6px, 1.5vh, 12px);
+            gap: clamp(6px, 1.2vh, 12px);
             width: 100%;
-            height: 100%;
+            max-height: 40vh;
             flex-grow: 1;
             min-height: 0;
         }
@@ -379,7 +379,7 @@
             .pulsing-logo { font-size: 36px; margin-bottom: 12px; }
             .waiting-box { padding: 12px; }
             .nickname-display { font-size: 18px; margin-bottom: 5px; }
-            #playerQuestionImage { max-height: 18vh; }
+            #playerQuestionImage { max-height: 25vh; }
             #playerQuestionText { margin-bottom: 8px; font-size: 14px; }
             .choices-grid { gap: 6px; }
             .choice-btn { border-radius: 12px; }
@@ -439,7 +439,14 @@
             <div id="playerQuestionText" style="font-size: var(--font-qtext); font-weight: 800; text-align: center; margin-bottom: clamp(8px, 1.5vh, 16px); line-height: 1.4; color: var(--text-main); width: 100%;">讀取題目中...</div>
             
             <div id="playerQuestionImageContainer" style="width: 100%; display: none; justify-content: center; align-items: center; margin-bottom: clamp(8px, 1.5vh, 16px); border-radius: 12px;">
-                <img id="playerQuestionImage" src="" style="width: 100%; height: auto; max-height: 25vh; object-fit: contain; border-radius: 12px; border: 1px solid var(--border-color);" alt="題目圖片">
+                <img id="playerQuestionImage" src="" style="width: 100%; height: auto; max-height: 28vh; object-fit: contain; border-radius: 12px; border: 1px solid var(--border-color);" alt="題目圖片">
+            </div>
+
+            <!-- Answering Timer display -->
+            <div id="playerTimerContainer" style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: clamp(8px, 1.5vh, 16px); width: 100%;">
+                <div style="font-size: 14px; font-weight: 800; color: var(--text-muted);">剩餘時間:</div>
+                <div id="playerTimerText" style="font-size: 24px; font-weight: 900; color: var(--primary); text-shadow: 0 0 10px var(--primary-glow); font-family: monospace;">30</div>
+                <div style="font-size: 14px; font-weight: 800; color: var(--text-muted);">秒</div>
             </div>
             
             <div class="choices-grid">
@@ -884,6 +891,8 @@
         let myNickname = '';
         let currentQuestion = null;
         let isAnswered = false;
+        let playerTimerInterval = null;
+        let playerSecondsLeft = 0;
 
         // Random nickname generator
         function generateRandomNickname() {
@@ -923,6 +932,12 @@
         function showScreen(screenId) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screenId).classList.add('active');
+            
+            // Clear countdown timer when switching away from question screen
+            if (screenId !== 'question-screen' && playerTimerInterval) {
+                clearInterval(playerTimerInterval);
+                playerTimerInterval = null;
+            }
             
             if (screenId === 'question-screen') {
                 // Heartbeat plays on question screen (handled in startQuestionCountdown)
@@ -1061,6 +1076,32 @@
                 imgContainer.style.display = 'none';
             }
 
+            // Answering Timer Initialization
+            if (playerTimerInterval) {
+                clearInterval(playerTimerInterval);
+            }
+            playerSecondsLeft = data.time_limit || 30;
+            const timerTextEl = document.getElementById('playerTimerText');
+            if (timerTextEl) {
+                timerTextEl.innerText = playerSecondsLeft;
+                timerTextEl.style.color = 'var(--primary)';
+            }
+            playerTimerInterval = setInterval(() => {
+                playerSecondsLeft--;
+                if (playerSecondsLeft <= 0) {
+                    playerSecondsLeft = 0;
+                    clearInterval(playerTimerInterval);
+                }
+                if (timerTextEl) {
+                    timerTextEl.innerText = playerSecondsLeft;
+                    if (playerSecondsLeft <= 5) {
+                        timerTextEl.style.color = '#ef4444';
+                    } else {
+                        timerTextEl.style.color = 'var(--primary)';
+                    }
+                }
+            }, 1000);
+
             if (!isAnswered) {
                 showScreen('question-screen');
                 audio.startBgm('tension');
@@ -1070,6 +1111,12 @@
         function submitAnswer(idx) {
             if (isAnswered) return;
             isAnswered = true;
+            
+            // Stop player timer immediately upon answer submission
+            if (playerTimerInterval) {
+                clearInterval(playerTimerInterval);
+                playerTimerInterval = null;
+            }
             
             try {
                 audio.stopBgm();

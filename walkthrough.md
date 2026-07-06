@@ -333,6 +333,12 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
   - **最大分數重置與連勝加分移除**：在 `server.py` 中，將 `base_points` 從 1000 降至 100。同時完全移除 `streak_bonus`（連勝加分累計機制），但保留連勝次數（`streak`）的純數字追蹤用於畫面視覺顯示，以確保任何題目單題的最高得分均嚴格受限於 100 分。
   - **速度權重線性衰減**：沿用並優化 Kahoot 標準的線性衰減公式 `points = int(base_points * (1.0 - speed_ratio * 0.5))`。答題正確且極速（接近 0 秒）的玩家可以拿到最高 100 分；隨著作答耗時拉長，分數線性遞減，直到答題時限（30 秒）的臨界點答對依然可以獲得保障底分 50 分。這完美保證了「答得越快、正確且分數越高，且依序遞減」的競爭樂趣。
 
+### 31. 行動玩家端倒數計時器加入與版面空間調優 (Player Screen Countdown Timer & Layout Adjustment)
+- **解決問題**：行動端玩家在作答時看不到當前剩餘答題時間，只能依靠大螢幕倒數，體驗不夠直觀。且直接加入計時器會擠壓原本的圖片與按鈕高度，需要調優讓按鈕可縮小、但題目圖片維持大尺寸。
+- **實作邏輯**：
+  - **同步倒數計時器**：在 `templates/player.html` 的 `#question-screen` 面板中，於圖片Container 與按鈕Grid 中間加入 `#playerTimerContainer`（「剩餘時間: XX 秒」），並採用藍色發光等寬字體。在 `startQuestionCountdown` 執行時啟動 1 秒一次 the JS 計時器，最後 5 秒自動變紅警示；當玩家提交答案後自動停止計時並清空定時器。
+  - **防止圖片被壓縮的佈局優化**：將按鈕容器 `.choices-grid` 的高度限縮為 `max-height: 40vh`，讓四個按鈕在畫面空間有限時（例如小螢幕手機）自動變窄，不強佔多餘垂直高度。同時將剩下的垂直空間全數釋放給題目圖片，使其在手機端的最大高度限制調升為 `28vh`（小螢幕為 `25vh`），從而保證圖片始終大而清晰，且按鈕能適當縮小，避免整體畫面產生捲軸或超出螢幕。
+
 ---
 
 ## How to Test & Verify
