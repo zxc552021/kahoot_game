@@ -129,7 +129,16 @@ class GameManager:
         self.game_state: str = "LOBBY"
         self.questions: List[Dict[str, Any]] = []
         self.current_question_index: int = 0
-        self.current_set_name: str = "預設題目"
+        
+        # Detect first available question set as default on startup
+        json_files = []
+        if os.path.exists(SETS_DIR):
+            json_files = [f[:-5] for f in os.listdir(SETS_DIR) if f.endswith('.json')]
+        if json_files:
+            self.current_set_name = json_files[0]
+        else:
+            self.current_set_name = "預設題目"
+
         self.timer_seconds: int = 0
         self.timer_task: Optional[asyncio.Task] = None
         # Delete old state file on startup to ensure a fresh lobby and prevent stuck states

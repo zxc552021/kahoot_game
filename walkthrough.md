@@ -339,6 +339,12 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
   - **同步倒數計時器**：在 `templates/player.html` 的 `#question-screen` 面板中，於圖片Container 與按鈕Grid 中間加入 `#playerTimerContainer`（「剩餘時間: XX 秒」），並採用藍色發光等寬字體。在 `startQuestionCountdown` 執行時啟動 1 秒一次 the JS 計時器，最後 5 秒自動變紅警示；當玩家提交答案後自動停止計時並清空定時器。
   - **防止圖片被壓縮的佈局優化**：將按鈕容器 `.choices-grid` 的高度限縮為 `max-height: 40vh`，讓四個按鈕在畫面空間有限時（例如小螢幕手機）自動變窄，不強佔多餘垂直高度。同時將剩下的垂直空間全數釋放給題目圖片，使其在手機端的最大高度限制調升為 `28vh`（小螢幕為 `25vh`），從而保證圖片始終大而清晰，且按鈕能適當縮小，避免整體畫面產生捲軸或超出螢幕。
 
+### 32. 刪除預設題目與防呆動態題庫加載 (Delete Default Question Set & Dynamic Startup Loader)
+- **解決問題**：使用者需要將「預設題目」這個選項/題庫從系統中完全刪除。如果直接刪除該 JSON 檔案，先前伺服器因為在啟動時硬編碼載入 `"預設題目"`，會造成啟動後題目清單為空。
+- **實作邏輯**：
+  - **刪除預設題庫檔案**：從 `question_sets/` 目錄中徹底刪除 `預設題目.json` 檔案。
+  - **動態啟動檢索與防呆**：修改 `server.py` 中 `GameManager` 的建構子。在伺服器啟動時，會自動掃描 `question_sets/` 目錄下所有可用的 JSON 題庫檔案，並自動選取清單中的第一個檔案作為當前活動題庫（`current_set_name`），如果目錄為空才回退到 `"預設題目"`。這確保了即使刪除了預設題庫，伺服器也能健全啟動並直接讀入其他現有題庫（如《一起解身體的渴》），徹底避免空題庫的異常狀態。
+
 ---
 
 ## How to Test & Verify
