@@ -351,6 +351,12 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
   - **視窗高度鎖定與滾動修復**：將 `host.html` 中 `body` 的 `min-height: 100vh` 調整為嚴格的 `height: 100vh`，將整體畫面高度強制約束在單一視窗範圍內。並將玩家標籤捲動容器 `.player-list-scroll` 加入 `min-height: 0;` 與美化滾動條，促使 Flexbox 容器能在標籤過多時自動觸發局部滾動（局部 `overflow-y: auto`），不會撐大外部容器。
   - **左側 QR Code 位置防偏移固定**：將 `.lobby-left` 的 `justify-content: center` 調整為 `justify-content: flex-start`，並將內距微調為 `30px 20px`。如此一來，左側所有的引導說明、QR Code 圖片與手動 IP 按鈕都將基於頂部對齊（頂部錨定），就算右側玩家人數極多或高度伸縮，左側內容也將永遠維持在畫面的固定位置，絕不產生上下跳動的排版偏移。
 
+### 34. 預設題目徹底停用與自動創建邏輯移除 (Complete Disabling of Default Question Set & Creator Logic Removal)
+- **解決問題**：先前已經手動刪除了 `預設題目.json` 題庫，但在 Render 上線部署運行時，伺服器後台仍然出現了 `預設題目 (0 題)`，導致下拉選單中依然存在該選項。
+- **實作邏輯**：
+  - **定位自動修復機制**：發現 `server.py` 開頭有一段歷史遺留的防呆與搬移機制：`if not os.path.exists(DEFAULT_SET_FILE): try: ... with open(DEFAULT_SET_FILE, 'w') ... json.dump([], f) ...`。這段程式碼會在開機找不到該檔案時自動補上一份空的 `預設題目.json`。
+  - **程式碼移除**：已將此自動補上空預設題目的程式區塊完全刪除。現在不論是本地端還是 Render 部署上線，伺服器開機時都不會再無故產生空的 `預設題目.json`，使該題庫選項從系統中徹底消失。
+
 ---
 
 ## How to Test & Verify

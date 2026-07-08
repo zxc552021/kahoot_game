@@ -39,13 +39,7 @@ if os.path.exists(QUESTIONS_FILE):
     except Exception as e:
         print(f"Error migrating questions.json: {e}")
 
-# If DEFAULT_SET_FILE still doesn't exist, create an empty one
-if not os.path.exists(DEFAULT_SET_FILE):
-    try:
-        with open(DEFAULT_SET_FILE, 'w', encoding='utf-8') as f:
-            json.dump([], f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        print(f"Error creating default set file: {e}")
+
 
 # Mount Static Files (for uploaded images)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
