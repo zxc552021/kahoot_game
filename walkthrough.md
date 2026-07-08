@@ -345,6 +345,12 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
   - **刪除預設題庫檔案**：從 `question_sets/` 目錄中徹底刪除 `預設題目.json` 檔案。
   - **動態啟動檢索與防呆**：修改 `server.py` 中 `GameManager` 的建構子。在伺服器啟動時，會自動掃描 `question_sets/` 目錄下所有可用的 JSON 題庫檔案，並自動選取清單中的第一個檔案作為當前活動題庫（`current_set_name`），如果目錄為空才回退到 `"預設題目"`。這確保了即使刪除了預設題庫，伺服器也能健全啟動並直接讀入其他現有題庫（如《一起解身體的渴》），徹底避免空題庫的異常狀態。
 
+### 33. 主持人大廳版面擠壓修正與左側 QR Code 位置固定 (Host Lobby Layout Fix & Left QR Code Anchoring)
+- **解決問題**：當大廳內加入的玩家人數變多時，玩家姓名標籤會超出螢幕高度將整個大廳版面往下撐開，進而擠出視窗且無法滾動；同時，左側 QR Code 的區塊會隨著右側姓名列表的高度增減而在垂直方向產生偏移。
+- **實作邏輯**：
+  - **視窗高度鎖定與滾動修復**：將 `host.html` 中 `body` 的 `min-height: 100vh` 調整為嚴格的 `height: 100vh`，將整體畫面高度強制約束在單一視窗範圍內。並將玩家標籤捲動容器 `.player-list-scroll` 加入 `min-height: 0;` 與美化滾動條，促使 Flexbox 容器能在標籤過多時自動觸發局部滾動（局部 `overflow-y: auto`），不會撐大外部容器。
+  - **左側 QR Code 位置防偏移固定**：將 `.lobby-left` 的 `justify-content: center` 調整為 `justify-content: flex-start`，並將內距微調為 `30px 20px`。如此一來，左側所有的引導說明、QR Code 圖片與手動 IP 按鈕都將基於頂部對齊（頂部錨定），就算右側玩家人數極多或高度伸縮，左側內容也將永遠維持在畫面的固定位置，絕不產生上下跳動的排版偏移。
+
 ---
 
 ## How to Test & Verify
