@@ -363,6 +363,12 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
   - **靜態圖片批次瘦身**：使用 Pillow 對 `static/uploads/` 下的所有 18 張高畫質題目圖片進行尺寸調優（限制 Max 1000px 寬度，適配手機高解析度顯示）與高效率 JPEG/PNG 壓縮（82% 品質）。圖片總體積由原本的 **105.43 MB 巨幅縮減至 2.79 MB（瘦身率達 97.4%）**，單張圖片平均縮至 150 KB 左右。
   - **上傳端自動壓縮防護**：修改 `server.py` 的 `/api/upload` 介面。未來任何使用者在題目編輯器（`/creator`）上傳全新題目圖片時，伺服器後端會自動攔截並呼叫 Pillow 進行 1000px 寬度與高感度品質壓縮，防止未來再產生過大圖片吃掉網路流量。
 
+### 36. 未引用舊圖片自動比對清理 (Unused Image Filtering & Garbage Collection)
+- **解決問題**：`static/uploads/` 目錄中殘留了過往測試上傳但目前並未在任何題目組別中使用的廢棄舊圖片。
+- **實作邏輯**：
+  - **全題庫動態關聯比對**：遍歷 `question_sets/` 目錄下的所有題目 JSON 檔案，提取出 10 張目前正在使用中的圖片檔名。
+  - **孤兒舊圖片精準刪除**：將 `static/uploads/` 中未被任何題目引用的 8 張舊版廢棄圖片完全過濾並安全刪除，進一步清理儲存空間，確保儲存庫只保留最新在使用的 10 張精緻題目圖片。
+
 ---
 
 ## How to Test & Verify
