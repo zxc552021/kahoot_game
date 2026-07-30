@@ -357,6 +357,12 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
   - **定位自動修復機制**：發現 `server.py` 開頭有一段歷史遺留的防呆與搬移機制：`if not os.path.exists(DEFAULT_SET_FILE): try: ... with open(DEFAULT_SET_FILE, 'w') ... json.dump([], f) ...`。這段程式碼會在開機找不到該檔案時自動補上一份空的 `預設題目.json`。
   - **程式碼移除**：已將此自動補上空預設題目的程式區塊完全刪除。現在不論是本地端還是 Render 部署上線，伺服器開機時都不會再無故產生空的 `預設題目.json`，使該題庫選項從系統中徹底消失。
 
+### 35. 靜態題目圖片深度壓縮與上傳端自動瘦身 (Image Deep Compression & Auto-Resizing Upload Endpoint)
+- **解決問題**：先前題庫中上傳的圖片單張高達 6.3 MB，全體圖片總體積破 105 MB。當多位玩家同時載入時會迅速將雲端託管平台的 5 GB 免費網路傳輸流量耗盡。
+- **實作邏輯**：
+  - **靜態圖片批次瘦身**：使用 Pillow 對 `static/uploads/` 下的所有 18 張高畫質題目圖片進行尺寸調優（限制 Max 1000px 寬度，適配手機高解析度顯示）與高效率 JPEG/PNG 壓縮（82% 品質）。圖片總體積由原本的 **105.43 MB 巨幅縮減至 2.79 MB（瘦身率達 97.4%）**，單張圖片平均縮至 150 KB 左右。
+  - **上傳端自動壓縮防護**：修改 `server.py` 的 `/api/upload` 介面。未來任何使用者在題目編輯器（`/creator`）上傳全新題目圖片時，伺服器後端會自動攔截並呼叫 Pillow 進行 1000px 寬度與高感度品質壓縮，防止未來再產生過大圖片吃掉網路流量。
+
 ---
 
 ## How to Test & Verify

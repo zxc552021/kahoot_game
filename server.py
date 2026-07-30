@@ -718,7 +718,7 @@ async def save_questions(request: Request, background_tasks: BackgroundTasks, se
 async def get_server_ip():
     return {"ip": get_local_ip()}
 
-# Image Upload API
+# Image Upload API (With Auto-Compression & Resizing)
 @app.post("/api/upload")
 async def upload_image(file: UploadFile = File(...)):
     ext = os.path.splitext(file.filename)[1].lower()
@@ -729,9 +729,26 @@ async def upload_image(file: UploadFile = File(...)):
     file_path = os.path.join(UPLOADS_DIR, unique_filename)
     
     try:
-        async with aiofiles.open(file_path, 'wb') as out_file:
-            while content := await file.read(1024 * 1024):  # 1MB chunks
-                await out_file.write(content)
+        raw_bytes = await file.read()
+        
+        # If static image, compress and resize using Pillow to save bandwidth
+        if ext in ['.png', '.jpg', '.jpeg', '.webp']:
+            try:
+                import io
+                from PIL import Image
+                
+                with Image.open(io.BytesIO(raw_bytes)) as img:
+                    img = img.convert('RGB')
+                    img.thumbnail((1000, 1000), Image.Resampling.LANCZOS)
+                    img.save(file_path, 'JPEG', quality=82, optimize=True)
+            except Exception as compress_err:
+                print(f"[Upload Warning] Pillow compression failed, falling back to raw save: {compress_err}")
+                async with aiofiles.open(file_path, 'wb') as out_file:
+                    await out_file.write(raw_bytes)
+        else:
+            # GIF or other format, write directly
+            async with aiofiles.open(file_path, 'wb') as out_file:
+                await out_file.write(raw_bytes)
         
         return {"url": f"/static/uploads/{unique_filename}"}
     except Exception as e:
