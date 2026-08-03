@@ -830,9 +830,10 @@
                 </div>
             </div>
 
-            <div class="screen-footer">
-                <span style="color: var(--text-muted);">投影大螢幕 - 請學員看此畫面題目與選項</span>
-                <button class="btn btn-secondary" onclick="revealAnswersImmediately()">直接公布答案</button>
+            <div class="screen-footer" style="display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; width: 100%;">
+                <span style="color: var(--text-muted); justify-self: start;">投影大螢幕 - 請學員看此畫面題目與選項</span>
+                <button class="btn" id="centerRevealBtn" onclick="revealAnswersImmediately()" style="justify-self: center; padding: 10px 24px; font-size: 15px; font-weight: 800; border-radius: 12px; background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; border: none; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); cursor: pointer; transition: transform 0.1s;">⚡ 直接公布答案</button>
+                <span style="justify-self: end;"></span>
             </div>
         </div>
 
@@ -1244,10 +1245,7 @@
                 btn.disabled = playersMap.length === 0;
                 btn.onclick = startGame;
             } else if (screenId === 'question-screen') {
-                btn.style.display = 'block';
-                btn.innerText = '公布答案';
-                btn.disabled = false;
-                btn.onclick = revealAnswersImmediately;
+                btn.style.display = 'none'; // Move reveal button strictly to center footer to avoid accidental double-clicks
             } else if (screenId === 'reveal-screen') {
                 btn.style.display = 'block';
                 btn.disabled = false;
@@ -1313,9 +1311,14 @@
 
         // Game Play Actions
         let currentQuestion = null;
+        let lastQuestionStartTime = 0;
+        let isRevealingAnswers = false;
+
         function showQuestion(data) {
             try {
                 currentQuestion = data;
+                lastQuestionStartTime = Date.now();
+                isRevealingAnswers = false;
                 try {
                     synth.stopBgm();
                     synth.startBgm('game');
@@ -1383,6 +1386,11 @@
         }
 
         function revealAnswersImmediately() {
+            if (isRevealingAnswers) return;
+            // Cooldown protection: Ignore click if question started less than 600ms ago (prevents double-click from previous screen)
+            if (Date.now() - lastQuestionStartTime < 600) return;
+
+            isRevealingAnswers = true;
             ws.send(JSON.stringify({ type: 'reveal_answers' }));
         }
 

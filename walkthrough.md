@@ -369,6 +369,13 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
   - **全題庫動態關聯比對**：遍歷 `question_sets/` 目錄下的所有題目 JSON 檔案，提取出 10 張目前正在使用中的圖片檔名。
   - **孤兒舊圖片精準刪除**：將 `static/uploads/` 中未被任何題目引用的 8 張舊版廢棄圖片完全過濾並安全刪除，進一步清理儲存空間，確保儲存庫只保留最新在使用的 10 張精緻題目圖片。
 
+### 37. 主持人端公布答案按鈕水平置中與防誤連擊優化 (Center Reveal Button & Double-Click Cooldown)
+- **解決問題**：在主持人端進行遊戲時，前一頁面右下角的「下一題」按鈕與題目頁面原先右下角的「直接公布答案」按鈕位置完全重疊，導致主持人快速點擊「下一題」連按兩下時，可能會不小心在進入新題目的瞬間觸發「直接公布答案」。
+- **實作邏輯**：
+  - **按鈕位置水平置中**：修改 `templates/host.html`，將題目畫面底部的控制欄改為 3 欄 Grid 置中佈局，將「⚡ 直接公布答案」亮黃色按鈕精準放置在**畫面正中央底部**，與右下角的「下一題」位置徹底錯開。
+  - **頂部 Header 按鈕重疊防護**：調整 `updateHeaderControlBtn` 函數，在 `question-screen` 時不再將頂部 Bar 右側按鈕顯示為「公布答案」，防止頂部列右側產生連擊點選。
+  - **防誤連擊時間冷卻 (600ms Cooldown)**：在 `revealAnswersImmediately()` 函數中加上時序保護，若進入新題目小於 600 毫秒內（即連擊發生的瞬間），會自動忽略觸發，防止任何畫面切換時的無意誤觸連按。
+
 ---
 
 ## How to Test & Verify
