@@ -89,18 +89,23 @@ def git_push_background():
         # This stages updated JSON files in question_sets/ and uploaded files in static/uploads/
         subprocess.run(["git", "add", "."], cwd=BASE_DIR, check=True, capture_output=True, text=True)
 
-        # 2. Check if there are changes staged for commit
+        # 2. Check if there are changes staged or unpushed commits
         status_proc = subprocess.run(["git", "status", "--porcelain"], cwd=BASE_DIR, check=True, capture_output=True, text=True)
-        if not status_proc.stdout.strip():
-            print("[Git Auto-Push] No changes to commit. Skipping push.")
+        has_uncommitted = bool(status_proc.stdout.strip())
+
+        unpushed_proc = subprocess.run(["git", "log", "origin/main..HEAD", "--oneline"], cwd=BASE_DIR, capture_output=True, text=True)
+        has_unpushed = bool(unpushed_proc.stdout.strip()) if unpushed_proc.returncode == 0 else True
+
+        if not has_uncommitted and not has_unpushed:
+            print("[Git Auto-Push] No changes to commit or push. Skipping push.")
             return
 
-        # 3. Commit changes
-        commit_msg = f"Auto-save question sets & uploads at {time.strftime('%Y-%m-%d %H:%M:%S')}"
-        subprocess.run(["git", "commit", "-m", commit_msg], cwd=BASE_DIR, check=True, capture_output=True, text=True)
+        # 3. Commit changes if needed
+        if has_uncommitted:
+            commit_msg = f"Auto-save question sets & uploads at {time.strftime('%Y-%m-%d %H:%M:%S')}"
+            subprocess.run(["git", "commit", "-m", commit_msg], cwd=BASE_DIR, check=True, capture_output=True, text=True)
 
         # 4. Push to GitHub main branch
-        # 30-second timeout to prevent hanging due to networking issues
         push_proc = subprocess.run(["git", "push", "origin", "main"], cwd=BASE_DIR, check=True, timeout=30, capture_output=True, text=True)
         print(f"[Git Auto-Push] Successfully pushed changes to GitHub.\n{push_proc.stdout}")
 
