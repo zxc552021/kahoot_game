@@ -579,7 +579,11 @@ async def get_template(filename: str) -> HTMLResponse:
         raise HTTPException(status_code=404, detail=f"Template {filename} not found")
     async with aiofiles.open(filepath, mode='r', encoding='utf-8') as f:
         content = await f.read()
-    return HTMLResponse(content=content)
+    return HTMLResponse(content=content, headers={
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
+    })
 
 @app.get("/")
 async def root():
