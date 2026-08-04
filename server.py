@@ -366,8 +366,10 @@ class GameManager:
 
     async def reveal_answers(self):
         if self.timer_task:
-            self.timer_task.cancel()
+            task = self.timer_task
             self.timer_task = None
+            if not task.done() and task != asyncio.current_task():
+                task.cancel()
             
         self.game_state = "REVEAL"
         question = self.get_current_question()
