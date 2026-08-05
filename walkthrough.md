@@ -389,6 +389,12 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
   - **啟用穿透保護與彈性 Flexbox 排版**：將 `screen-footer` 改為全寬 Flexbox 三欄獨立分區，並為左側提示文字加上 `pointer-events: none; user-select: none;` 屬性。
   - **提升按鈕圖層層級 (Z-Index Protection)**：給「⚡ 直接公布答案」黃色按鈕加上 `z-index: 10; position: relative;`，確保按鈕必定居於最高互動圖層，滑鼠點擊 100% 精準觸發，且永遠不會與文字產生視覺疊加。
 
+### 40. 倒數計時器 19 秒崩潰卡死 BUG 徹底修復 (Fix Timer 19s Crash & Broadcast Exception)
+- **解決問題**：在進行題目倒數時，剩餘時間會突然卡死停在某個秒數（如 19 秒），倒數停止且全場畫面無法繼續推進。
+- **實作邏輯**：
+  - **切斷倒數過程中的遞迴廣播衝突**：排查發現原先 `broadcast_to_players` 偵測到有背景玩家離線時，會強制觸發 `send_lobby_update()`，進而引發 `lobby_status` 的遞迴廣播例外。已將 `send_lobby_update()` 限制為僅在 `LOBBY` 狀態下觸發，避免倒數期間產生的連線離線拋出例外打斷倒數 Task。
+  - **獨立 `timer_tick` 異常防護罩**：在 `countdown_timer()` 的 `while` 倒數迴圈中，為 `timer_tick` 廣播加上獨立 `try-except` 護航，確保縱使有網絡波動或離線，倒數迴圈必定保持強健，順暢扣倒 0 秒或順利接收手動揭曉命令。
+
 ---
 
 ## How to Test & Verify

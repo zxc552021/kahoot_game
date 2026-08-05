@@ -281,7 +281,7 @@ class GameManager:
             self.players[name]["connected"] = False
             self.players[name]["ws"] = None
             print(f"Player {name} disconnected during broadcast.")
-        if disconnected_players:
+        if disconnected_players and self.game_state == "LOBBY":
             await self.send_lobby_update()
 
     async def send_to_host(self, message: Dict[str, Any]):
@@ -361,13 +361,18 @@ class GameManager:
                 
                 # Broadcast timer tick
                 tick_msg = {"type": "timer_tick", "seconds_left": self.timer_seconds}
-                await self.send_to_host(tick_msg)
-                await self.broadcast_to_players(tick_msg)
+                try:
+                    await self.send_to_host(tick_msg)
+                    await self.broadcast_to_players(tick_msg)
+                except Exception as tick_err:
+                    print(f"Error during timer tick broadcast: {tick_err}")
                 
             # Timer expired
             await self.reveal_answers()
         except asyncio.CancelledError:
             pass
+        except Exception as e:
+            print(f"Error in countdown_timer: {e}")
 
     async def reveal_answers(self):
         try:
