@@ -377,6 +377,12 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
   - **防誤連擊時間冷卻 (600ms Cooldown)**：在 `revealAnswersImmediately()` 函數中加上時序保護，若進入新題目小於 600 毫秒內（即連擊發生的瞬間），會自動忽略觸發，防止任何畫面切換時的無意誤觸連按。
   - **伺服器層級強效防快取**：在 `server.py` 的 HTML 模板回應中加入 `Cache-Control: no-cache, no-store, must-revalidate` 標頭，確保瀏覽器不會繼續讀取快取中的舊版右下角深綠色按鈕。
 
+### 38. 主持人端點擊公布答案卡死 BUG 徹底修復 (Fix Reveal Deadlock & Rearrange Button Logic)
+- **解決問題**：點擊「直接公布答案」後畫面會直接死鎖卡住無法繼續進行遊戲。
+- **實作邏輯**：
+  - **移除前端會造成死鎖的布林 Flag**：在 `templates/host.html` 中發現先前加入的 `isRevealingAnswers` 布林變數在點擊一次後未正確解鎖，導致任何後續操作皆被前端徹底 Blocking 攔截卡死。已將該死鎖變數完全移除，改為輕量化的 `lastRevealClickTime` 1000ms 時間戳記防護。
+  - **後端全方位 Exception 防護與 Safe Get**：在 `server.py` 的 `reveal_answers()` 方法中加入 `try...except` 區塊與安全 `get()` 預設值防護，確保揭曉資料計算與 WebSocket 廣播流程順暢執行不中斷。
+
 ---
 
 ## How to Test & Verify

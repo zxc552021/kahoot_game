@@ -1311,13 +1311,12 @@
         // Game Play Actions
         let currentQuestion = null;
         let lastQuestionStartTime = 0;
-        let isRevealingAnswers = false;
+        let lastRevealClickTime = 0;
 
         function showQuestion(data) {
             try {
                 currentQuestion = data;
                 lastQuestionStartTime = Date.now();
-                isRevealingAnswers = false;
                 try {
                     synth.stopBgm();
                     synth.startBgm('game');
@@ -1385,11 +1384,13 @@
         }
 
         function revealAnswersImmediately() {
-            if (isRevealingAnswers) return;
+            const now = Date.now();
             // Cooldown protection: Ignore click if question started less than 600ms ago (prevents double-click from previous screen)
-            if (Date.now() - lastQuestionStartTime < 600) return;
+            if (now - lastQuestionStartTime < 600) return;
+            // Ignore rapid duplicate clicks within 1000ms
+            if (now - lastRevealClickTime < 1000) return;
 
-            isRevealingAnswers = true;
+            lastRevealClickTime = now;
             ws.send(JSON.stringify({ type: 'reveal_answers' }));
         }
 

@@ -370,70 +370,73 @@ class GameManager:
             pass
 
     async def reveal_answers(self):
-        if self.timer_task:
-            task = self.timer_task
-            self.timer_task = None
-            if not task.done() and task != asyncio.current_task():
-                task.cancel()
+        try:
+            if self.timer_task:
+                task = self.timer_task
+                self.timer_task = None
+                if not task.done() and task != asyncio.current_task():
+                    task.cancel()
+                
+            self.game_state = "REVEAL"
+            question = self.get_current_question()
+            if not question:
+                return
+
+            correct_idx = question.get("correct_index", 0)
             
-        self.game_state = "REVEAL"
-        question = self.get_current_question()
-        if not question:
-            return
+            # Calculate statistics
+            stats = [0, 0, 0, 0] # counts for options 0, 1, 2, 3
+            for name, data in self.players.items():
+                if data.get("answered"):
+                    sel_idx = data.get("selected_index", -1)
+                    if 0 <= sel_idx < 4:
+                        stats[sel_idx] += 1
 
-        correct_idx = question["correct_index"]
-        
-        # Calculate statistics
-        stats = [0, 0, 0, 0] # counts for options 0, 1, 2, 3
-        for name, data in self.players.items():
-            if data["answered"]:
-                sel_idx = data.get("selected_index", -1)
-                if 0 <= sel_idx < 4:
-                    stats[sel_idx] += 1
+            # Calculate rankings for leaderboard
+            sorted_players = sorted(
+                self.players.items(),
+                key=lambda x: x[1].get("score", 0),
+                reverse=True
+            )
+            
+            leaderboard_data = []
+            for rank, (name, data) in enumerate(sorted_players, 1):
+                leaderboard_data.append({
+                    "rank": rank,
+                    "nickname": name,
+                    "score": data.get("score", 0),
+                    "streak": data.get("streak", 0),
+                    "connected": data.get("connected", False)
+                })
 
-        # Calculate rankings for leaderboard
-        sorted_players = sorted(
-            self.players.items(),
-            key=lambda x: x[1]["score"],
-            reverse=True
-        )
-        
-        leaderboard_data = []
-        for rank, (name, data) in enumerate(sorted_players, 1):
-            leaderboard_data.append({
-                "rank": rank,
-                "nickname": name,
-                "score": data["score"],
-                "streak": data["streak"],
-                "connected": data["connected"]
+            # Send reveal to host
+            await self.send_to_host({
+                "type": "reveal_answers",
+                "correct_index": correct_idx,
+                "stats": stats,
+                "leaderboard": leaderboard_data[:5]
             })
 
-        # Send reveal to host
-        await self.send_to_host({
-            "type": "reveal_answers",
-            "correct_index": correct_idx,
-            "stats": stats,
-            "leaderboard": leaderboard_data[:5]
-        })
-
-        # Send individual feedback to players
-        for rank, (name, data) in enumerate(sorted_players, 1):
-            if data["connected"] and data["ws"]:
-                try:
-                    await data["ws"].send_json({
-                        "type": "reveal_player_result",
-                        "is_correct": data["is_correct"],
-                        "points_earned": data["points_earned"],
-                        "total_score": data["score"],
-                        "streak": data["streak"],
-                        "correct_index": correct_idx,
-                        "selected_index": data.get("selected_index", -1),
-                        "rank": rank,
-                        "total_players": len(self.players)
-                    })
-                except Exception:
-                    pass
-        self.save_state()
+            # Send individual feedback to players
+            for rank, (name, data) in enumerate(sorted_players, 1):
+                if data.get("connected") and data.get("ws"):
+                    try:
+                        await data["ws"].send_json({
+                            "type": "reveal_player_result",
+                            "is_correct": data.get("is_correct", False),
+                            "points_earned": data.get("points_earned", 0),
+                            "total_score": data.get("score", 0),
+                            "streak": data.get("streak", 0),
+                            "correct_index": correct_idx,
+                            "selected_index": data.get("selected_index", -1),
+                            "rank": rank,
+                            "total_players": len(self.players)
+                        })
+                    except Exception as pe:
+                        print(f"Error sending player reveal to {name}: {pe}")
+            self.save_state()
+        except Exception as e:
+            print(f"Error in reveal_answers: {e}")
 
     async def show_leaderboard(self):
         self.game_state = "LEADERBOARD"
