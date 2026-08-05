@@ -383,6 +383,12 @@ I have resolved the host dashboard layout overflow issues, fixed the question ad
   - **移除前端會造成死鎖的布林 Flag**：在 `templates/host.html` 中發現先前加入的 `isRevealingAnswers` 布林變數在點擊一次後未正確解鎖，導致任何後續操作皆被前端徹底 Blocking 攔截卡死。已將該死鎖變數完全移除，改為輕量化的 `lastRevealClickTime` 1000ms 時間戳記防護。
   - **後端全方位 Exception 防護與 Safe Get**：在 `server.py` 的 `reveal_answers()` 方法中加入 `try...except` 區塊與安全 `get()` 預設值防護，確保揭曉資料計算與 WebSocket 廣播流程順暢執行不中斷。
 
+### 39. 按鈕與提示文字重疊點擊阻擋修復 (Fix Button Click Hijacking & Text Overlay)
+- **解決問題**：在特定的螢幕解析度或半視窗尺寸下，底部絕對定位的提示文字覆蓋壓在「⚡ 直接公布答案」黃色按鈕上方，導致滑鼠點擊被文字攔截，按鈕無法觸發 `onclick` 事件。
+- **實作邏輯**：
+  - **啟用穿透保護與彈性 Flexbox 排版**：將 `screen-footer` 改為全寬 Flexbox 三欄獨立分區，並為左側提示文字加上 `pointer-events: none; user-select: none;` 屬性。
+  - **提升按鈕圖層層級 (Z-Index Protection)**：給「⚡ 直接公布答案」黃色按鈕加上 `z-index: 10; position: relative;`，確保按鈕必定居於最高互動圖層，滑鼠點擊 100% 精準觸發，且永遠不會與文字產生視覺疊加。
+
 ---
 
 ## How to Test & Verify
