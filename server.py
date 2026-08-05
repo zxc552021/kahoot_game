@@ -121,7 +121,7 @@ def git_push_background():
 # Global Game Manager
 class GameManager:
     def __init__(self):
-        self.host_ws: Optional[WebSocket] = None
+        self.host_sockets: Set[Any] = set()
         # players structure: { nickname: { "ws": ws_connection, "score": int, "streak": int, "answered": bool, "time_taken": float, "is_correct": bool, "points_earned": int, "connected": bool } }
         self.players: Dict[str, Dict[str, Any]] = {}
         # game_state can be: "LOBBY", "QUESTION", "REVEAL", "LEADERBOARD", "FINISHED"
@@ -285,12 +285,14 @@ class GameManager:
             await self.send_lobby_update()
 
     async def send_to_host(self, message: Dict[str, Any]):
-        if self.host_ws:
+        dead_sockets = []
+        for ws in list(self.host_sockets):
             try:
-                await self.host_ws.send_json(message)
+                await ws.send_json(message)
             except Exception:
-                self.host_ws = None
-                print("Host connection lost.")
+                dead_sockets.append(ws)
+        for ws in dead_sockets:
+            self.host_sockets.discard(ws)
 
     async def send_lobby_update(self):
         player_list = [
@@ -810,7 +812,7 @@ async def websocket_endpoint(websocket: WebSocket):
         
         if client_role == "host":
             # Set host connection
-            game_manager.host_ws = websocket
+            game_manager.host_sockets.add(websocket)
             print("Host connected via WebSocket.")
             
             # Send initial IP and questions info
@@ -1122,7 +1124,7 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         if client_role == "host":
             print("Host disconnected.")
-            game_manager.host_ws = None
+            game_manager.host_sockets.discard(websocket)
         elif client_role == "player" and client_name:
             print(f"Player {client_name} disconnected.")
             if client_name in game_manager.players:
